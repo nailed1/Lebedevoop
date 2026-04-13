@@ -2,7 +2,7 @@
 #include <locale>
 #include <ctime>
 #include <fstream>
-#include "LineList.h"
+#include "LineListCycle.h"
 
 using namespace std;
 

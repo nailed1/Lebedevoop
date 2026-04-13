@@ -1,6 +1,6 @@
-#ifndef LINELIST_CPP
-#define LINELIST_CPP
-#include "LineList.h"
+#ifndef LINELISTCYCLE_CPP
+#define LINELISTCYCLE_CPP
+#include "LineListCycle.h"
 
 template<class T>
 LineListElem<T>::LineListElem(const T& adata, LineListElem<T>* anext) {
