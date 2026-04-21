@@ -5,15 +5,16 @@ private:
 
 
 public:
-    int num;
-    int den;
+    long long num;
+    long long den;
 
     //функции
     Rational();
     Rational(int n);
-    Rational(int n, int d);
+    Rational(long long n);
+    Rational(long long n, long long d);
     Rational(double val);
-    void quadratic_function(const Rational& a, const Rational& b, const Rational& c);
+
 
     //мат. операции
     Rational& operator +=(const Rational& r);
@@ -26,17 +27,17 @@ public:
     Rational operator / (const Rational& r) const;
 
     //мат операции rational с int
-    Rational& operator+=(int x);
-    Rational  operator+(int x) const;
+    Rational& operator+=(long long x);
+    Rational  operator+(long long x) const;
 
-    Rational& operator-=(int x);
-    Rational  operator-(int x) const;
+    Rational& operator-=(long long x);
+    Rational  operator-(long long x) const;
 
-    Rational& operator*=(int x);
-    Rational  operator*(int x) const;
+    Rational& operator*=(long long x);
+    Rational  operator*(long long x) const;
 
-    Rational& operator/=(int x);
-    Rational  operator/(int x) const;
+    Rational& operator/=(long long x);
+    Rational  operator/(long long x) const;
 
     //перевод rational в другие типы
     operator int () const;
@@ -51,7 +52,7 @@ public:
     bool operator>=(const Rational& r) const;
 };
 
-Rational operator + (int x, const Rational& r);
-Rational operator - (int x, const Rational& r);
-Rational operator * (int x, const Rational& r);
-Rational operator / (int x, const Rational& r);
+Rational operator + (long long x, const Rational& r);
+Rational operator - (long long x, const Rational& r);
+Rational operator * (long long x, const Rational& r);
+Rational operator / (long long x, const Rational& r);
