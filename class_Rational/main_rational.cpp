@@ -32,7 +32,7 @@ long long integer_sqrt(long long N) {
     return x;
 }
 
-Rational sqrt_rational(const Rational& D, const Rational& eps) {
+Rational sqrt_rational(const Rational& D) {
     if (D < Rational(0))
         throw std::invalid_argument("Negative radicand");
     if (D == Rational(0))
@@ -71,8 +71,8 @@ Roots solve_quadratic(const Rational& a, const Rational& b, const Rational& c) {
         return {false, Rational(), Rational()};
     }
     
-    Rational eps(1, 1000000);
-    Rational sqrtD = sqrt_rational(D, eps);
+    // Rational eps(1, 1000000);
+    Rational sqrtD = sqrt_rational(D);
     
     Rational two_a = Rational(2) * a;
     Rational minus_b = b * Rational(-1);
@@ -83,9 +83,9 @@ Roots solve_quadratic(const Rational& a, const Rational& b, const Rational& c) {
 }
 
 int main(){
-    Rational a(7, 13);
-    Rational b(-17, 19);
-    Rational c(3, 11);
+    Rational a(1);
+    Rational b(567, 345);
+    Rational c(2, 51);
     Roots res = solve_quadratic(a, b, c);
     cout << res.x1.num << "/" << res.x1.den << "\n" << res.x2.num << "/" << res.x2.den << endl;
     cout << (double)res.x1 << "\n" << (double)res.x2 << endl;
