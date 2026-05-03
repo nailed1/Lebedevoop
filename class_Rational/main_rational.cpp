@@ -5,7 +5,14 @@
 using namespace std;
 
 Rational my_abs(Rational r) {
-    return (r < Rational(0)) ? Rational(-r.num, r.den) : r;
+    if (r < Rational(0)) {
+        try {
+            return Rational(-r.num, r.den);
+        } catch (const overflow_error&) {
+            return r;
+        }
+    }
+    return r;
 }
 
 static long long gcd(long long a, long long b) {
@@ -17,44 +24,87 @@ static long long gcd(long long a, long long b) {
     return a;
 }
 
-// чцелочисленный корень
-long long integer_sqrt(long long N) {
-    if (N < 0) throw std::invalid_argument("Negative radicand");
-    if (N == 0 || N == 1) return N;
+// Проверка на переполнение при умножении
+bool will_multiply_overflow(long long a, long long b) {
+    if (a == 0 || b == 0) return false;
+    long long result = (long long)a * (long long)b;
+    return (result > numeric_limits<long long>::max()) || 
+           (result < numeric_limits<long long>::min());
+}
+
+// Целочисленный корень через long long
+long long integer_sqrt_heron(long long N) {
+    if (N < 0) throw invalid_argument("Negative radicand");
+    if (N == 0 || N == 1) return (long long)N;
     
     long long x = N;
-    long long y = (x + N / x) / 2;
+    long long y = (x + 1) / 2;
     
     while (y < x) {
         x = y;
         y = (x + N / x) / 2;
     }
-    return x;
+    
+    // Проверяем, какой корень ближе: x или x+1
+    long long sq1 = x * x;
+    long long sq2 = (x + 1) * (x + 1);
+    
+    if ((N - sq1) > (sq2 - N)) {
+        return (long long)(x + 1);
+    }
+    
+    return (long long)x;
 }
 
 Rational sqrt_rational(const Rational& D) {
     if (D < Rational(0))
-        throw std::invalid_argument("Negative radicand");
+        throw invalid_argument("Negative radicand");
     if (D == Rational(0))
         return Rational(0);
     
     long long a = D.num;
     long long b = D.den;
     
-    // Упрощаем дробь для избежания переполнения
+    // Упрощаем дробь
     long long g = gcd(abs(a), abs(b));
     a /= g;
     b /= g;
     
-    long long N = a * b;
-    long long root = integer_sqrt(N);
+    // Проверяем переполнение
+    if (will_multiply_overflow(a, b)) {
+        // Fallback на double если числа слишком большие
+        double approx = sqrt((double)a / b);
+        return Rational((long long)(approx * 10000), 10000);
+    }
     
-    // Проверяем точность
-    Rational approx(root, b);
-    Rational diff = approx * approx - D;
-    if (diff < Rational(0)) 
-        diff = Rational(-diff.num, diff.den);
-    return approx;
+    // Начальное приближение через integer_sqrt
+    long long N = a * b;
+    long long root = integer_sqrt_heron(N);
+    Rational x(root, b);
+    
+    // Уточнение алгоритмом Герона
+    // x_{n+1} = (x_n + D/x_n) / 2
+    for (int i = 0; i < 10; i++) {
+        try {
+            Rational x_next = (x + D / x) / Rational(2);
+            
+            // Проверяем сходимость
+            if (x_next == x) break;
+            
+            Rational diff = x_next - x;
+            if (my_abs(diff) < Rational(1, 1000000)) {
+                x = x_next;
+                break;
+            }
+            
+            x = x_next;
+        } catch (const overflow_error&) {
+            // Переполнение на итерации - возвращаем текущее приближение
+            break;
+        }
+    }
+    
+    return x;
 }
 
 struct Roots {
@@ -63,16 +113,17 @@ struct Roots {
 };
 
 Roots solve_quadratic(const Rational& a, const Rational& b, const Rational& c) {
-    if (a == Rational(0)) throw std::invalid_argument("Not a quadratic equation");
+    if (a == Rational(0)) throw invalid_argument("Not a quadratic equation");
     
     Rational D = b * b - Rational(4) * a * c;
     cout << "D = " << D.num << "/" << D.den << " = " << (double)D << endl;
+    
     if (D < Rational(0)) {
         return {false, Rational(), Rational()};
     }
     
-    // Rational eps(1, 1000000);
     Rational sqrtD = sqrt_rational(D);
+    cout << "sqrtD = " << sqrtD.num << "/" << sqrtD.den << " = " << (double)sqrtD << endl;
     
     Rational two_a = Rational(2) * a;
     Rational minus_b = b * Rational(-1);
@@ -83,10 +134,27 @@ Roots solve_quadratic(const Rational& a, const Rational& b, const Rational& c) {
 }
 
 int main(){
-    Rational a(1);
-    Rational b(567, 345);
-    Rational c(2, 51);
+    long long a_num, a_den, b_num, b_den, c_num, c_den;
+    
+    cout << "Enter a (numerator denominator): ";
+    cin >> a_num >> a_den;
+    cout << "Enter b (numerator denominator): ";
+    cin >> b_num >> b_den;
+    cout << "Enter c (numerator denominator): ";
+    cin >> c_num >> c_den;
+    
+    Rational a(a_num, a_den);
+    Rational b(b_num, b_den);
+    Rational c(c_num, c_den);
+    
     Roots res = solve_quadratic(a, b, c);
-    cout << res.x1.num << "/" << res.x1.den << "\n" << res.x2.num << "/" << res.x2.den << endl;
-    cout << (double)res.x1 << "\n" << (double)res.x2 << endl;
+    
+    if (res.real) {
+        cout << "x1 = " << res.x1.num << "/" << res.x1.den << " = " << (double)res.x1 << endl;
+        cout << "x2 = " << res.x2.num << "/" << res.x2.den << " = " << (double)res.x2 << endl;
+    } else {
+        cout << "No real roots" << endl;
+    }
+    
+    return 0;
 }

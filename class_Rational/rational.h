@@ -2,8 +2,12 @@ class Rational
 {
 private:
     void simplify();
-
-
+    // Вспомогательные функции для проверки переполнения
+    static bool will_add_overflow(long long a, long long b);
+    static bool will_subtract_overflow(long long a, long long b);
+    static bool will_multiply_overflow(long long a, long long b);
+    static bool will_divide_overflow(long long a, long long b);
+    
 public:
     long long num;
     long long den;
