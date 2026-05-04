@@ -84,7 +84,7 @@ Rational sqrt_rational(const Rational& D) {
     
     // Уточнение алгоритмом Герона
     // x_{n+1} = (x_n + D/x_n) / 2
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 100; i++) {
         try {
             Rational x_next = (x + D / x) / Rational(2);
             
@@ -158,3 +158,10 @@ int main(){
     
     return 0;
 }
+// Enter a (numerator denominator): 97 101
+// Enter b (numerator denominator): 103 107
+// Enter c (numerator denominator): -103 113
+// D = 578628353/130667437 = 4.42825
+// sqrtD = 274968878/130667437 = 2.10434
+// x1 = -400751551/250984978 = -1.59672
+// x2 = 149186205/250984978 = 0.594403

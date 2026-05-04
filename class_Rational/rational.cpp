@@ -10,7 +10,7 @@ static long long gcd(long long a, long long b) {
     return a;
 }
 
-// Проверки переполнения с использованием __int128
+// Проверки переполнения с использованием long long
 bool Rational::will_add_overflow(long long a, long long b) {
     if (a > 0 && b > 0 && a > numeric_limits<long long>::max() - b)
         return true;
