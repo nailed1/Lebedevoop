@@ -1,251 +1,181 @@
-#include <iostream>
 #include "DateTime.h"
-#include <cmath>
+#include <iostream>
+#include <math.h>
 
 using namespace std;
 
-bool DateTime::IsLeapYear(int year) const {
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+bool DateTime::isLeap(int y){
+    return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
 }
 
-int DateTime::DaysInMonth(int month) const {
-    int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (month == 2 && IsLeapYear(year)) {
-        return 29;
-    }
-    return days[month - 1];
+int DateTime::daysInMonth(int m, int y){
+    if (m==4 || m==6 || m==9 || m==11)
+        return 30;
+    if (m==2)
+        return isLeap(y) ? 29 : 28;
+    return 31;
 }
 
-void DateTime::IsCorrect() {
-    while (second < 0) {
-        second += 60;
-        minute--;
-    }
-    while (second >= 60) {
-        second -= 60;
-        minute++;
-    }
-    
-    while (minute < 0) {
-        minute += 60;
-        hour--;
-    }
-    while (minute >= 60) {
-        minute -= 60;
-        hour++;
-    }
-    
-    while (hour < 0) {
-        hour += 24;
-        day--;
-    }
-    while (hour >= 24) {
-        hour -= 24;
-        day++;
-    }
-    
-    while (day < 1) {
-        month--;
-        if (month < 1) {
-            month = 12;
-            year--;
-        }
-        day += DaysInMonth(month);
-    }
-    while (day > DaysInMonth(month)) {
-        day -= DaysInMonth(month);
-        month++;
-        if (month > 12) {
-            month = 1;
-            year++;
-        }
-    }
-}
+double DateTime::dateToDouble(int y, int m, int d, int h, int min, int sec){
+    if (y<1582 || m<1 || m>12 || h<0 || h>23 || min<0 || min>59 || sec<0 || sec>59)
+        throw DateTimeException();
+    if (d<1 || d>daysInMonth(m,y))
+        throw DateTimeException();
 
-long long DateTime::gregorianToJulian(int y, int m, int d) {
+    // Алгоритм Жана Меёса
     if (m <= 2) {
-        y--;
+        y -= 1;
         m += 12;
     }
-    return 365LL * y + y / 4 - y / 100 + y / 400 + (153LL * (m - 3) + 2) / 5 + d - 1;
+
+    int A = y / 100;
+    int B = 2 - A + (A / 4);
+
+    double jd_day = (long long)(365.25 * (y + 4716)) + 
+                    (long long)(30.6001 * (m + 1)) + 
+                    d + B - 1524.5;
+
+    double jd_time = (h * 3600.0 + min * 60.0 + sec) / 86400.0;
+
+    return jd_day + jd_time;
 }
 
-DateTime::DateTime() : second(0), minute(0), hour(0), day(1), month(1), year(1970) {}
-
-DateTime::DateTime(int y, int m, int d, int h, int min, int s) 
-    : second(s), minute(min), hour(h), day(d), month(m), year(y) {
-    IsCorrect();
+DateTime::DateTime(int y,int m,int d,int h, int min,int sec, DateTimeFormat f){
+    data=dateToDouble(y, m, d, h, min, sec);
+    fmt=f;
 }
 
-void DateTime::setDate(int y, int m, int d) {
-    year = y;
-    month = m;
-    day = d;
-    IsCorrect();
+istream& operator>>(istream& is, DateTime& dt) {
+    int v1, v2, v3;
+    char s1, s2;
+    int y = 0, m = 1, d = 1, h = 0, min = 0, sec = 0;
+
+    if (!(is >> v1 >> s1 >> v2 >> s2 >> v3))
+        throw DateTimeException();
+
+    if (s1 == ':') {
+        h = v1; min = v2; sec = v3;
+        dt.setFormat(TIME_ONLY);
+    } else if (s1 == '-') {
+        y = v1; m = v2; d = v3;
+        dt.setFormat(DATE_ONLY);
+        if (is.peek() == 'T') {
+            char t, s4, s5;
+            is >> t >> h >> s4 >> min >> s5 >> sec;
+            dt.setFormat(FULL);
+        }
+    } else {
+        throw DateTimeException();
+    }
+
+    dt.data = DateTime::dateToDouble(y, m, d, h, min, sec);
+    return is;
 }
 
-void DateTime::setTime(int h, int min, int s) {
-    hour = h;
-    minute = min;
-    second = s;
-    IsCorrect();
+
+ostream& operator<<(ostream& os, const DateTime& dt) {
+    double z = floor(dt.data + 0.5);
+    double f = (dt.data + 0.5) - z;
+    double a;
+
+    if (z < 2299161) {
+        a = z;
+    } else {
+        double alpha = floor((z - 1867216.25) / 36524.25);
+        a = z + 1 + alpha - floor(alpha / 4);
+    }
+
+    double b = a + 1524;
+    double c = floor((b - 122.1) / 365.25);
+    double d_ptr = floor(365.25 * c);
+    double e = floor((b - d_ptr) / 30.6001);
+
+    int day   = (int)(b - d_ptr - floor(30.6001 * e));
+    int month = (int)((e < 14) ? (e - 1) : (e - 13));
+    int year  = (int)((month > 2) ? (c - 4716) : (c - 4715));
+    int h     = (int)(f * 24) % 24;
+    int min   = (int)(f * 1440) % 60;
+    int sec   = (int)(f * 86400) % 60;
+
+    if (dt.fmt == DATE_ONLY) {
+        os << year << "-"
+           << (month < 10 ? "0" : "") << month << "-"
+           << (day   < 10 ? "0" : "") << day << "\n";
+    } 
+    else if (dt.fmt == TIME_ONLY) {
+        os << (h   < 10 ? "0" : "") << h   << ":"
+           << (min < 10 ? "0" : "") << min << ":"
+           << (sec < 10 ? "0" : "") << sec << "\n";
+    } 
+    else {
+        os << year << "-"
+           << (month < 10 ? "0" : "") << month << "-"
+           << (day   < 10 ? "0" : "") << day   << "T"
+           << (h     < 10 ? "0" : "") << h     << ":"
+           << (min   < 10 ? "0" : "") << min   << ":"
+           << (sec   < 10 ? "0" : "") << sec   << "\n";
+    }
+    return os;
 }
 
-void DateTime::setDateTime(int y, int m, int d, int h, int min, int s) {
-    year = y;
-    month = m;
-    day = d;
-    hour = h;
-    minute = min;
-    second = s;
-    IsCorrect();
+
+double DateTime::operator-(const DateTime& other) const {return data-other.data;}
+DateTime DateTime::operator+(int days) const {
+    DateTime buf=*this;
+    buf.data += days;
+    return buf;
 }
 
-void DateTime::setDateTime(const char* iso_string) {
-    int y, m, d, h, min, s;
-    sscanf(iso_string, "%d-%d-%dT%d:%d:%d", &y, &m, &d, &h, &min, &s);
-    setDateTime(y, m, d, h, min, s);
-}
+bool DateTime::operator==(const DateTime& other) const {return data == other.data;}
+bool DateTime::operator!=(const DateTime& other) const {return data != other.data;}
+bool DateTime::operator>(const DateTime& other) const {return data > other.data;}
+bool DateTime::operator>=(const DateTime& other) const {return data >= other.data;}
+bool DateTime::operator<(const DateTime& other) const {return data < other.data;}
+bool DateTime::operator<=(const DateTime& other) const {return data <= other.data;}
 
-void DateTime::input(istream& in) {
-    in >> year >> month >> day >> hour >> minute >> second;
-    IsCorrect();
-}
-
-void DateTime::print(ostream& out) const {
-    out << year << "-" << month << "-" << day << "T" 
-        << hour << ":" << minute << ":" << second;
-}
-
-void DateTime::printFormat1(ostream& out) const {
-    if (day < 10) out << "0";
-    out << day << ".";
-    if (month < 10) out << "0";
-    out << month << "." << year;
-}
-
-void DateTime::printFormat2(ostream& out) const {
-    const char* months[] = {"January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December"};
-    out << day << " " << months[month - 1] << " " << year;
-}
-
-void DateTime::printFormat3(ostream& out) const {
-    int yy = year % 100;
-    if (yy < 10) out << "0";
-    out << yy << ".";
-    if (month < 10) out << "0";
-    out << month << ".";
-    if (day < 10) out << "0";
-    out << day;
-}
-
-long long DateTime::differenceInDays(const DateTime& other) const {
-    long long j1 = gregorianToJulian(year, month, day);
-    long long j2 = gregorianToJulian(other.year, other.month, other.day);
-    return j1 - j2;
-}
 
 int DateTime::getDayOfWeek() const {
-    long long jd = gregorianToJulian(year, month, day);
-    return (jd + 1) % 7;
+    int dow = (int)(floor(data + 1.5)) % 7;
+    if (dow < 0) dow += 7;
+    return dow == 0 ? 7 : dow;
 }
 
-int DateTime::calculateEasterDate(int year) const {
+int DateTime::getYear() const {
+    double z = floor(data + 0.5);
+    double f = (data + 0.5) - z;
+    double a;
+
+    if (z < 2299161) {
+        a = z;
+    } else {
+        double alpha = floor((z - 1867216.25) / 36524.25);
+        a = z + 1 + alpha - floor(alpha / 4);
+    }
+
+    double b = a + 1524;
+    double c = floor((b - 122.1) / 365.25);
+    double d_ptr = floor(365.25 * c);
+    double e = floor((b - d_ptr) / 30.6001);
+
+    int month = (int)((e < 14) ? (e - 1) : (e - 13));
+    int year  = (int)((month > 2) ? (c - 4716) : (c - 4715));
+    return year;
+}
+
+DateTime DateTime::easter(int year) {
+    // Алгоритм Гаусса
     int a = year % 19;
-    int b = year / 100;
-    int c = year % 100;
-    int d = b / 4;
-    int e = b % 4;
-    int f = (b + 8) / 25;
-    int g = (b - f + 1) / 3;
-    int h = (19 * a + b - d - g + 15) % 30;
-    int i = c / 4;
-    int k = c % 4;
-    int l = (32 + 2 * e + 2 * i - h - k) % 7;
-    int m = (a + 11 * h + 22 * l) / 451;
-    int month = (h + l - 7 * m + 114) / 31;
-    int day = ((h + l - 7 * m + 114) % 31) + 1;
-    
-    int dayOfYear = day;
-    for (int m = 1; m < month; m++) {
-        int daysInM = 31;
-        if (m == 4 || m == 6 || m == 9 || m == 11) daysInM = 30;
-        else if (m == 2) daysInM = IsLeapYear(year) ? 29 : 28;
-        dayOfYear += daysInM;
-    }
-    return dayOfYear;
-}
+    int b = year % 4;
+    int c = year % 7;
+    int d = (19 * a + 24) % 30;
+    int e = (2 * b + 4 * c + 6 * d + 5) % 7;
+    int day = 22 + d + e;
+    int month = 3;
 
-DateTime DateTime::operator+(int seconds) const {
-    DateTime result = *this;
-    result.second += seconds;
-    result.IsCorrect();
-    return result;
-}
+    if (day == 57) { day = 19; month = 4; }
+    if (d == 28 && e == 6 && a > 10) { day = 18; month = 4; }
 
-DateTime DateTime::operator-(int seconds) const {
-    return *this + (-seconds);
-}
+    if (day > 31) { day -= 31; month = 4; }
 
-DateTime DateTime::operator-(const DateTime& other) const {
-    long long daysDiff = differenceInDays(other);
-    long long totalSeconds = daysDiff * 86400LL;
-    totalSeconds += (hour - other.hour) * 3600LL;
-    totalSeconds += (minute - other.minute) * 60LL;
-    totalSeconds += (second - other.second);
-    
-    bool negative = totalSeconds < 0;
-    if (negative) totalSeconds = -totalSeconds;
-    
-    long long days = totalSeconds / 86400LL;
-    int remaining = totalSeconds % 86400LL;
-    int hours = remaining / 3600;
-    remaining %= 3600;
-    int minutes = remaining / 60;
-    int seconds = remaining % 60;
-    
-    if (negative) {
-        days = -days;
-        hours = -hours;
-        minutes = -minutes;
-        seconds = -seconds;
-    }
-    
-    return DateTime(0, 0, days, hours, minutes, seconds);
-}
-
-DateTime DateTime::operator+(const DateTime& other) const {
-    long long totalSeconds = other.hour * 3600LL + other.minute * 60LL + other.second;
-    return *this + totalSeconds;
-}
-
-bool DateTime::operator==(const DateTime& other) const {
-    return year == other.year && month == other.month && day == other.day &&
-           hour == other.hour && minute == other.minute && second == other.second;
-}
-
-bool DateTime::operator!=(const DateTime& other) const {
-    return !(*this == other);
-}
-
-bool DateTime::operator<(const DateTime& other) const {
-    if (year != other.year) return year < other.year;
-    if (month != other.month) return month < other.month;
-    if (day != other.day) return day < other.day;
-    if (hour != other.hour) return hour < other.hour;
-    if (minute != other.minute) return minute < other.minute;
-    return second < other.second;
-}
-
-bool DateTime::operator>(const DateTime& other) const {
-    return other < *this;
-}
-
-bool DateTime::operator<=(const DateTime& other) const {
-    return !(*this > other);
-}
-
-bool DateTime::operator>=(const DateTime& other) const {
-    return !(*this < other);
+    return DateTime(year, month, day, 0, 0, 0);
 }
