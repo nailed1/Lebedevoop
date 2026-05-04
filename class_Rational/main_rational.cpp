@@ -27,11 +27,21 @@ static long long gcd(long long a, long long b) {
 // Проверка на переполнение при умножении
 bool will_multiply_overflow(long long a, long long b) {
     if (a == 0 || b == 0) return false;
-    long long result = (long long)a * (long long)b;
-    return (result > numeric_limits<long long>::max()) || 
-           (result < numeric_limits<long long>::min());
+    if (a > 0) {
+        if (b > 0) {
+            if (a > numeric_limits<long long>::max() / b) return true;
+        } else {
+            if (b < numeric_limits<long long>::min() / a) return true;
+        }
+    } else {
+        if (b > 0) {
+            if (a < numeric_limits<long long>::min() / b) return true;
+        } else {
+            if (a < numeric_limits<long long>::max() / b) return true;
+        }
+    }
+    return false;
 }
-
 // Целочисленный корень через long long
 long long integer_sqrt_heron(long long N) {
     if (N < 0) throw invalid_argument("Negative radicand");
@@ -69,13 +79,6 @@ Rational sqrt_rational(const Rational& D) {
     long long g = gcd(abs(a), abs(b));
     a /= g;
     b /= g;
-    
-    // Проверяем переполнение
-    if (will_multiply_overflow(a, b)) {
-        // Fallback на double если числа слишком большие
-        double approx = sqrt((double)a / b);
-        return Rational((long long)(approx * 10000), 10000);
-    }
     
     // Начальное приближение через integer_sqrt
     long long N = a * b;
