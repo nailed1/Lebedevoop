@@ -2,40 +2,54 @@
 #define DATETIME_H
 
 #include <iostream>
-using namespace std;
+#include <iomanip>
 
 class DateTimeException {};
 
-enum DateTimeFormat { FULL, DATE_ONLY, TIME_ONLY };
+class DateTime {
+private:
+    int year, month, day;
+    int hour, minute, second;
 
-class DateTime{
-    double data;
-    DateTimeFormat fmt;
-
-    static bool isLeap(int y);
+    static bool isLeapYear(int y);
     static int daysInMonth(int m, int y);
-    static double dateToDouble(int y, int m, int d, int h, int min, int sec);
+    static bool isValidDate(int y, int m, int d);
+
 public:
-    DateTime() : data(0), fmt(FULL) {};
-    DateTime(int y,int m,int d,int h=0, int min=0,int sec=0, DateTimeFormat f = FULL);
-    void setFormat(DateTimeFormat f) { fmt = f; }
+    // Конструкторы
+    DateTime();
+    DateTime(int y, int m, int d, int h = 0, int min = 0, int sec = 0);
 
-    friend ostream& operator<<(ostream& os, const DateTime& dt);
-    friend istream& operator>>(istream& is, DateTime& dt);
+    // Геттеры
+    int getYear() const { return year; }
+    int getMonth() const { return month; }
+    int getDay() const { return day; }
+    int getHour() const { return hour; }
+    int getMinute() const { return minute; }
+    int getSecond() const { return second; }
 
-    double operator-(const DateTime& other) const;
-    DateTime operator+(int days) const;
+    // Сеттеры
+    void setYear(int y) { year = y; }
+    void setMonth(int m) { month = m; }
+    void setDay(int d) { day = d; }
 
+    // Операторы сравнения
     bool operator==(const DateTime& other) const;
     bool operator!=(const DateTime& other) const;
-    bool operator>(const DateTime& other) const;
-    bool operator>=(const DateTime& other) const;
     bool operator<(const DateTime& other) const;
+    bool operator>(const DateTime& other) const;
     bool operator<=(const DateTime& other) const;
+    bool operator>=(const DateTime& other) const;
 
+    // Ввод/вывод
+    friend std::ostream& operator<<(std::ostream& os, const DateTime& dt);
+    friend std::istream& operator>>(std::istream& is, DateTime& dt);
+
+    // Утилиты
     int getDayOfWeek() const;
-    int getYear() const;
-    static DateTime easter(int year);
+    static DateTime getEaster(int year);
+    DateTime addDays(int days) const;
+    int daysBetween(const DateTime& other) const;
 };
 
-#endif
+#endif // DATETIME_H

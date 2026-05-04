@@ -1,146 +1,161 @@
-#include "DateTime.h"
 #include "MoonData.h"
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <cstdio>
+#include <iomanip>
 
 using namespace std;
 
-void quickSort(DateTime arr[], int left, int right) {
-    if (left >= right) return;
-    DateTime pivot = arr[(left + right) / 2];
-    int i = left, j = right;
-    while (i <= j) {
-        while (arr[i] < pivot) i++;
-        while (arr[j] > pivot) j--;
-        if (i <= j) {
-            DateTime tmp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = tmp;
-            i++; j--;
+// Определение формата файла по заголовку
+static bool detectFileType(ifstream& file) {
+    string header;
+    getline(file, header);
+    // Если в заголовке есть "T", значит есть колонка с температурой
+    return header.find("T") != string::npos;
+}
+
+// Основная функция обработки
+MoonResult processMoonData(const DateTime& target) {
+    MoonResult result;
+    
+    // Формируем имя файла (безопасный способ)
+    char filename[50];
+    snprintf(filename, sizeof(filename), "Moon/moon%d.dat", target.getYear());
+    
+    ifstream file(filename);
+    if (!file.is_open()) {
+        result.ok = false;
+        return result;
+    }
+    
+    cout << "Opened file: " << filename << endl;
+    
+    bool hasTColumn = detectFileType(file);
+    cout << (hasTColumn ? "Full format" : "Short format") << endl;
+    
+    // Читаем все строки файла
+    string line;
+    int lineNum = 0;
+    bool foundTargetDate = false;
+    double prevEl = -999.0;
+    double maxEl = -999.0;
+    
+    while (getline(file, line)) {
+        lineNum++;
+        
+        int ymd, hms;
+        double r, el, az, fi, lg;
+        double t = 0; // возможно, не используется
+        
+        // Парсим строку
+        stringstream ss(line);
+        ss >> ymd >> hms;
+        
+        if (ss.fail()) {
+            cerr << "Warning: Cannot parse line " << lineNum << ": " << line << endl;
+            continue;
+        }
+        
+        if (hasTColumn) {
+            ss >> t;
+        }
+        
+        ss >> r >> el >> az >> fi >> lg;
+        
+        if (ss.fail()) {
+            cerr << "Warning: Cannot parse data on line " << lineNum << endl;
+            continue;
+        }
+        
+        // Извлекаем дату
+        int year = ymd / 10000;
+        int month = (ymd / 100) % 100;
+        int day = ymd % 100;
+        
+        // Проверяем, та ли это дата
+        if (year == target.getYear() && month == target.getMonth() && day == target.getDay()) {
+            foundTargetDate = true;
+            
+            // Извлекаем время
+            int hour = hms / 10000;
+            int minute = (hms / 100) % 100;
+            int second = hms % 100;
+            
+            DateTime dt(year, month, day, hour, minute, second);
+            
+            // Проверяем кульминацию
+            if (el > maxEl) {
+                maxEl = el;
+                result.culminationTime = dt;
+                result.hasCulmination = true;
+            }
+            
+            // Проверяем восход
+            if (prevEl < 0 && el > 0 && prevEl != -999.0) {
+                result.riseTime = dt;
+                result.hasRise = true;
+            }
+            
+            // Проверяем заход
+            if (prevEl >= 0 && el < 0 && prevEl != -999.0) {
+                result.setTime = dt;
+                result.hasSet = true;
+            }
+            
+            prevEl = el;
+        } 
+        else if (foundTargetDate) {
+            // Мы уже прошли целевую дату - можно выходить
+            break;
         }
     }
-    quickSort(arr, left, i - 1);
-    quickSort(arr, i, right);
+    
+    file.close();
+    cout << "Processed " << lineNum << " lines" << endl;
+    
+    return result;
 }
 
-void Tests() {
-    DateTime today(2026,3,30);
-    DateTime yesterday(2026,3,29);
-    DateTime today2(2026,3,30);
-
-    cout<<"Print"<<endl;
-    cout<<today;
-
-    cout<<"Compare"<<endl;
-    cout<<(today==yesterday)<<endl;
-    cout<<(today!=yesterday)<<endl;
-    cout<<(today>yesterday)<<endl;
-    cout<<(today<yesterday)<<endl;
-    cout<<(today>=yesterday)<<endl;
-    cout<<(today<=today2)<<endl;
-
-    cout<<"Math operation"<<endl;
-    double diff = today - yesterday;
-    cout<<diff<<endl;
-
-    DateTime future = today + 50;
-    cout<<future;
-
-    cout<<"DayOfWeek"<<endl;
-    cout <<today.getDayOfWeek()<<endl;
-
-    cout<<"Easter"<<endl;
-    DateTime e = DateTime::easter(2026);
-    cout << e;
-}
-
-void Interactive() {
-    cout<<"Input"<<endl;
-    DateTime ourDate;
-    cin>>ourDate;
-    cout<<ourDate;
-
-    cout << "QuickSort" << endl;
-    int n;
-    cin >> n;
-    DateTime* dates = new DateTime[n];
-
-    for (int i = 0; i < n; i++) cin >> dates[i];
-
-    cout << "Before:" << endl;
-    for (int i = 0; i < n; i++) cout << dates[i];
-
-    quickSort(dates, 0, n - 1);
-
-    cout << "After:" << endl;
-    for (int i = 0; i < n; i++) cout << dates[i];
-
-    delete[] dates;
-}
-
-void ExceptionTest() {
-    cout<<"Exception"<<endl;
-    DateTime wrongDate(2026, 3, 32);
-}
-
-int main() {
-    // try {
-    //     Tests();
-    //     Interactive();
-    //     ExceptionTest();
-    // }
-    // catch(const DateTimeException& e) {
-    //     cout << "Catch Exception";
-    // }
-
-    int y, m, d;
-    char sep;
-    cin >> y >> sep >> m >> sep >> d;
-
-    DateTime target(y, m, d);
-
-    clock_t start = clock();
-
-    MoonResult result = processMoonData(target);
-
+void printResult(const DateTime& target, const MoonResult& result) {
+    cout << "\n=== Moon Data for " << target << " ===" << endl;
+    
     if (!result.ok) {
-        cout << "File not found" << endl;
-        return 1;
+        cout << "Error: Cannot open data file" << endl;
+        return;
     }
-
-    clock_t end = clock();
-    double time = (double)(end - start) / CLOCKS_PER_SEC;
-    cout << "Time: " << time << " sec"<<endl;
-
-    printResult(target, result);
-
-    return 0;
-
-    return 0;
+    
+    // Вывод времени восхода
+    cout << "Rise: ";
+    if (result.hasRise) {
+        cout << setfill('0') << setw(2) << result.riseTime.getHour() << ":"
+             << setfill('0') << setw(2) << result.riseTime.getMinute() << ":"
+             << setfill('0') << setw(2) << result.riseTime.getSecond();
+    } else {
+        cout << "---";
+    }
+    cout << endl;
+    
+    // Вывод времени кульминации
+    cout << "Culmination: ";
+    if (result.hasCulmination) {
+        cout << setfill('0') << setw(2) << result.culminationTime.getHour() << ":"
+             << setfill('0') << setw(2) << result.culminationTime.getMinute() << ":"
+             << setfill('0') << setw(2) << result.culminationTime.getSecond();
+    } else {
+        cout << "---";
+    }
+    cout << endl;
+    
+    // Вывод времени захода
+    cout << "Set: ";
+    if (result.hasSet) {
+        cout << setfill('0') << setw(2) << result.setTime.getHour() << ":"
+             << setfill('0') << setw(2) << result.setTime.getMinute() << ":"
+             << setfill('0') << setw(2) << result.setTime.getSecond();
+    } else {
+        cout << "---";
+    }
+    cout << endl;
 }
-
-// 1995-01-01
-// 1994-04-26
-// 1992-12-05
-// 1994-07-12
-// 1993-09-11
-// 1992-07-21
-// 1997-06-29
-// 1997-02-06
-// 1995-10-31
-// 1993-08-18
-// 1995-03-02
-// 1996-08-12
-// 1997-01-28
-// 1995-12-15
-// 1997-06-09
-// 1993-11-10
-// 1994-07-05
-// 1993-06-06
-// 1997-08-21
-// 1996-09-28
-// 1993-01-14
-// 1992-10-02
-// 1997-06-13
-// 1996-08-18
-// 1994-06-08
-// 1993-05-04

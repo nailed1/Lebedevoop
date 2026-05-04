@@ -1,181 +1,197 @@
 #include "DateTime.h"
-#include <iostream>
-#include <math.h>
+#include <stdexcept>
 
-using namespace std;
-
-bool DateTime::isLeap(int y){
+// Вспомогательные статические методы
+bool DateTime::isLeapYear(int y) {
     return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
 }
 
-int DateTime::daysInMonth(int m, int y){
-    if (m==4 || m==6 || m==9 || m==11)
-        return 30;
-    if (m==2)
-        return isLeap(y) ? 29 : 28;
-    return 31;
-}
-
-double DateTime::dateToDouble(int y, int m, int d, int h, int min, int sec){
-    if (y<1582 || m<1 || m>12 || h<0 || h>23 || min<0 || min>59 || sec<0 || sec>59)
-        throw DateTimeException();
-    if (d<1 || d>daysInMonth(m,y))
-        throw DateTimeException();
-
-    // Алгоритм Жана Меёса
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
+int DateTime::daysInMonth(int m, int y) {
+    switch (m) {
+        case 4: case 6: case 9: case 11: return 30;
+        case 2: return isLeapYear(y) ? 29 : 28;
+        default: return 31;
     }
-
-    int A = y / 100;
-    int B = 2 - A + (A / 4);
-
-    double jd_day = (long long)(365.25 * (y + 4716)) + 
-                    (long long)(30.6001 * (m + 1)) + 
-                    d + B - 1524.5;
-
-    double jd_time = (h * 3600.0 + min * 60.0 + sec) / 86400.0;
-
-    return jd_day + jd_time;
 }
 
-DateTime::DateTime(int y,int m,int d,int h, int min,int sec, DateTimeFormat f){
-    data=dateToDouble(y, m, d, h, min, sec);
-    fmt=f;
+bool DateTime::isValidDate(int y, int m, int d) {
+    return y >= 1582 && m >= 1 && m <= 12 && 
+           d >= 1 && d <= daysInMonth(m, y);
 }
 
-istream& operator>>(istream& is, DateTime& dt) {
-    int v1, v2, v3;
-    char s1, s2;
-    int y = 0, m = 1, d = 1, h = 0, min = 0, sec = 0;
+// Конструкторы
+DateTime::DateTime() : year(2000), month(1), day(1), 
+                       hour(0), minute(0), second(0) {}
 
-    if (!(is >> v1 >> s1 >> v2 >> s2 >> v3))
+DateTime::DateTime(int y, int m, int d, int h, int min, int sec) {
+    if (!isValidDate(y, m, d) || h < 0 || h > 23 || 
+        min < 0 || min > 59 || sec < 0 || sec > 59)
         throw DateTimeException();
+    
+    year = y; month = m; day = d;
+    hour = h; minute = min; second = sec;
+}
 
-    if (s1 == ':') {
-        h = v1; min = v2; sec = v3;
-        dt.setFormat(TIME_ONLY);
-    } else if (s1 == '-') {
-        y = v1; m = v2; d = v3;
-        dt.setFormat(DATE_ONLY);
-        if (is.peek() == 'T') {
-            char t, s4, s5;
-            is >> t >> h >> s4 >> min >> s5 >> sec;
-            dt.setFormat(FULL);
-        }
+// Операторы сравнения
+bool DateTime::operator==(const DateTime& other) const {
+    return year == other.year && month == other.month && 
+           day == other.day && hour == other.hour && 
+           minute == other.minute && second == other.second;
+}
+
+bool DateTime::operator!=(const DateTime& other) const {
+    return !(*this == other);
+}
+
+bool DateTime::operator<(const DateTime& other) const {
+    if (year != other.year) return year < other.year;
+    if (month != other.month) return month < other.month;
+    if (day != other.day) return day < other.day;
+    if (hour != other.hour) return hour < other.hour;
+    if (minute != other.minute) return minute < other.minute;
+    return second < other.second;
+}
+
+bool DateTime::operator>(const DateTime& other) const {
+    return other < *this;
+}
+
+bool DateTime::operator<=(const DateTime& other) const {
+    return !(other < *this);
+}
+
+bool DateTime::operator>=(const DateTime& other) const {
+    return !(*this < other);
+}
+
+// Ввод/вывод
+std::ostream& operator<<(std::ostream& os, const DateTime& dt) {
+    if (dt.hour == 0 && dt.minute == 0 && dt.second == 0) {
+        // Вывод только даты
+        os << dt.year << "-" 
+           << std::setw(2) << std::setfill('0') << dt.month << "-"
+           << std::setw(2) << std::setfill('0') << dt.day;
+    } else if (dt.year == 2000 && dt.month == 1 && dt.day == 1) {
+        // Вывод только времени (если дата по умолчанию)
+        os << std::setw(2) << std::setfill('0') << dt.hour << ":"
+           << std::setw(2) << std::setfill('0') << dt.minute << ":"
+           << std::setw(2) << std::setfill('0') << dt.second;
     } else {
-        throw DateTimeException();
-    }
-
-    dt.data = DateTime::dateToDouble(y, m, d, h, min, sec);
-    return is;
-}
-
-
-ostream& operator<<(ostream& os, const DateTime& dt) {
-    double z = floor(dt.data + 0.5);
-    double f = (dt.data + 0.5) - z;
-    double a;
-
-    if (z < 2299161) {
-        a = z;
-    } else {
-        double alpha = floor((z - 1867216.25) / 36524.25);
-        a = z + 1 + alpha - floor(alpha / 4);
-    }
-
-    double b = a + 1524;
-    double c = floor((b - 122.1) / 365.25);
-    double d_ptr = floor(365.25 * c);
-    double e = floor((b - d_ptr) / 30.6001);
-
-    int day   = (int)(b - d_ptr - floor(30.6001 * e));
-    int month = (int)((e < 14) ? (e - 1) : (e - 13));
-    int year  = (int)((month > 2) ? (c - 4716) : (c - 4715));
-    int h     = (int)(f * 24) % 24;
-    int min   = (int)(f * 1440) % 60;
-    int sec   = (int)(f * 86400) % 60;
-
-    if (dt.fmt == DATE_ONLY) {
-        os << year << "-"
-           << (month < 10 ? "0" : "") << month << "-"
-           << (day   < 10 ? "0" : "") << day << "\n";
-    } 
-    else if (dt.fmt == TIME_ONLY) {
-        os << (h   < 10 ? "0" : "") << h   << ":"
-           << (min < 10 ? "0" : "") << min << ":"
-           << (sec < 10 ? "0" : "") << sec << "\n";
-    } 
-    else {
-        os << year << "-"
-           << (month < 10 ? "0" : "") << month << "-"
-           << (day   < 10 ? "0" : "") << day   << "T"
-           << (h     < 10 ? "0" : "") << h     << ":"
-           << (min   < 10 ? "0" : "") << min   << ":"
-           << (sec   < 10 ? "0" : "") << sec   << "\n";
+        // Полный вывод
+        os << dt.year << "-" 
+           << std::setw(2) << std::setfill('0') << dt.month << "-"
+           << std::setw(2) << std::setfill('0') << dt.day << "T"
+           << std::setw(2) << std::setfill('0') << dt.hour << ":"
+           << std::setw(2) << std::setfill('0') << dt.minute << ":"
+           << std::setw(2) << std::setfill('0') << dt.second;
     }
     return os;
 }
 
-
-double DateTime::operator-(const DateTime& other) const {return data-other.data;}
-DateTime DateTime::operator+(int days) const {
-    DateTime buf=*this;
-    buf.data += days;
-    return buf;
-}
-
-bool DateTime::operator==(const DateTime& other) const {return data == other.data;}
-bool DateTime::operator!=(const DateTime& other) const {return data != other.data;}
-bool DateTime::operator>(const DateTime& other) const {return data > other.data;}
-bool DateTime::operator>=(const DateTime& other) const {return data >= other.data;}
-bool DateTime::operator<(const DateTime& other) const {return data < other.data;}
-bool DateTime::operator<=(const DateTime& other) const {return data <= other.data;}
-
-
-int DateTime::getDayOfWeek() const {
-    int dow = (int)(floor(data + 1.5)) % 7;
-    if (dow < 0) dow += 7;
-    return dow == 0 ? 7 : dow;
-}
-
-int DateTime::getYear() const {
-    double z = floor(data + 0.5);
-    double f = (data + 0.5) - z;
-    double a;
-
-    if (z < 2299161) {
-        a = z;
-    } else {
-        double alpha = floor((z - 1867216.25) / 36524.25);
-        a = z + 1 + alpha - floor(alpha / 4);
+std::istream& operator>>(std::istream& is, DateTime& dt) {
+    int y = 2000, m = 1, d = 1, h = 0, min = 0, sec = 0;
+    char sep1, sep2;
+    
+    is >> y >> sep1 >> m >> sep2 >> d;
+    
+    if (sep1 != '-' || sep2 != '-') {
+        throw DateTimeException();
     }
-
-    double b = a + 1524;
-    double c = floor((b - 122.1) / 365.25);
-    double d_ptr = floor(365.25 * c);
-    double e = floor((b - d_ptr) / 30.6001);
-
-    int month = (int)((e < 14) ? (e - 1) : (e - 13));
-    int year  = (int)((month > 2) ? (c - 4716) : (c - 4715));
-    return year;
+    
+    // Проверяем, есть ли время
+    if (is.peek() == 'T' || is.peek() == ' ') {
+        char t;
+        is >> t >> h >> sep1 >> min >> sep2 >> sec;
+    }
+    
+    dt = DateTime(y, m, d, h, min, sec);
+    return is;
 }
 
-DateTime DateTime::easter(int year) {
+// Утилиты
+int DateTime::getDayOfWeek() const {
+    // Формула Зеллера
+    int m = month;
+    int y = year;
+    if (m < 3) {
+        m += 12;
+        y -= 1;
+    }
+    
+    int K = y % 100;
+    int J = y / 100;
+    
+    int h = (day + (13 * (m + 1)) / 5 + K + K / 4 + J / 4 + 5 * J) % 7;
+    
+    // Преобразуем: суббота=0, воскресенье=1 -> понедельник=1, воскресенье=7
+    int dow = ((h + 5) % 7) + 1;
+    return dow;
+}
+
+DateTime DateTime::getEaster(int year) {
     // Алгоритм Гаусса
     int a = year % 19;
     int b = year % 4;
     int c = year % 7;
     int d = (19 * a + 24) % 30;
     int e = (2 * b + 4 * c + 6 * d + 5) % 7;
+    
     int day = 22 + d + e;
     int month = 3;
+    
+    if (day > 31) {
+        day -= 31;
+        month = 4;
+    }
+    
+    // Корректировки для особых случаев
+    if (day == 26 && month == 4) day = 19;
+    if (day == 25 && month == 4 && d == 28 && a > 10) day = 18;
+    
+    return DateTime(year, month, day);
+}
 
-    if (day == 57) { day = 19; month = 4; }
-    if (d == 28 && e == 6 && a > 10) { day = 18; month = 4; }
+DateTime DateTime::addDays(int days) const {
+    int d = day + days;
+    int m = month;
+    int y = year;
+    
+    while (d > daysInMonth(m, y)) {
+        d -= daysInMonth(m, y);
+        m++;
+        if (m > 12) {
+            m = 1;
+            y++;
+        }
+    }
+    
+    while (d < 1) {
+        m--;
+        if (m < 1) {
+            m = 12;
+            y--;
+        }
+        d += daysInMonth(m, y);
+    }
+    
+    return DateTime(y, m, d, hour, minute, second);
+}
 
-    if (day > 31) { day -= 31; month = 4; }
-
-    return DateTime(year, month, day, 0, 0, 0);
+int DateTime::daysBetween(const DateTime& other) const {
+    DateTime dt1 = *this;
+    DateTime dt2 = other;
+    
+    // Считаем дни от некоторой точки
+    auto daysFromEpoch = [](const DateTime& dt) -> int {
+        int days = dt.getDay();
+        for (int m = 1; m < dt.getMonth(); m++) {
+            days += daysInMonth(m, dt.getYear());
+        }
+        for (int y = 1582; y < dt.getYear(); y++) {
+            days += isLeapYear(y) ? 366 : 365;
+        }
+        return days;
+    };
+    
+    return daysFromEpoch(dt2) - daysFromEpoch(dt1);
 }

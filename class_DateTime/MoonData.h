@@ -1,6 +1,8 @@
-#ifndef MOON_H
-#define MOON_H
+#ifndef MOON_DATA_H
+#define MOON_DATA_H
+
 #include "DateTime.h"
+#include <string>
 
 struct MoonResult {
     bool ok = true;
@@ -15,6 +17,6 @@ struct MoonResult {
 };
 
 MoonResult processMoonData(const DateTime& target);
-void printResult(const DateTime& target, const MoonResult& r);
+void printResult(const DateTime& target, const MoonResult& result);
 
-#endif
+#endif // MOON_DATA_H
