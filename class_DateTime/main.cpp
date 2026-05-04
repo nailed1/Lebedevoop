@@ -22,7 +22,7 @@ void quickSort(DateTime arr[], int left, int right) {
     quickSort(arr, i, right);
 }
 
-void runTests() {
+void Tests() {
     DateTime today(2026,3,30);
     DateTime yesterday(2026,3,29);
     DateTime today2(2026,3,30);
@@ -53,7 +53,7 @@ void runTests() {
     cout << e;
 }
 
-void runInteractive() {
+void Interactive() {
     cout<<"Input"<<endl;
     DateTime ourDate;
     cin>>ourDate;
@@ -77,16 +77,16 @@ void runInteractive() {
     delete[] dates;
 }
 
-void runExceptionTest() {
+void ExceptionTest() {
     cout<<"Exception"<<endl;
     DateTime wrongDate(2026, 3, 32);
 }
 
 int main() {
     // try {
-    //     runTests();
-    //     runInteractive();
-    //     runExceptionTest();
+    //     Tests();
+    //     Interactive();
+    //     ExceptionTest();
     // }
     // catch(const DateTimeException& e) {
     //     cout << "Catch Exception";
