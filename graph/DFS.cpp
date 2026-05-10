@@ -1,4 +1,4 @@
-#include "dfs.h"
+#include "DFS.h"
 
 DFS::DFS(const Graph& agraph) : graph(agraph) {}
 
@@ -12,7 +12,7 @@ bool DFS::connected(Node* begin, Node* end, int depth) {
     
     visited.insert(begin);
     
-    for (node_iterator it = begin->nb_begin(); it != begin->nb_end(); ++it) {
+    for (neighbour_iterator it = begin->nb_begin(); it != begin->nb_end(); ++it) {
         if (visited.find(it->first) == visited.end()) {
             if (connected(it->first, end, depth + 1)) {
                 return true;

@@ -27,19 +27,18 @@ static long long gcd(long long a, long long b) {
 // Проверка на переполнение при умножении
 bool will_multiply_overflow(long long a, long long b) {
     if (a == 0 || b == 0) return false;
-    if (a > 0) {
-        if (b > 0) {
-            if (a > numeric_limits<long long>::max() / b) return true;
-        } else {
-            if (b < numeric_limits<long long>::min() / a) return true;
-        }
-    } else {
-        if (b > 0) {
-            if (a < numeric_limits<long long>::min() / b) return true;
-        } else {
-            if (a < numeric_limits<long long>::max() / b) return true;
-        }
-    }
+    
+    // Особый случай: LLONG_MIN * -1
+    if (a == numeric_limits<long long>::min() && b == -1) return true;
+    if (b == numeric_limits<long long>::min() && a == -1) return true;
+    
+    // Используем беззнаковое умножение для проверки
+    unsigned long long ua = a < 0 ? -(unsigned long long)a : a;
+    unsigned long long ub = b < 0 ? -(unsigned long long)b : b;
+    
+    if (ua > numeric_limits<unsigned long long>::max() / ub)
+        return true;
+    
     return false;
 }
 // Целочисленный корень через long long

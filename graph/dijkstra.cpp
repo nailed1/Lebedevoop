@@ -55,7 +55,7 @@ Way Dijkstra::shortestWay(Node* begin, Node* end) {
             return unroll(visited, begin, end);
         }
         
-        for (node_iterator it = next.node->nb_begin(); it != next.node->nb_end(); ++it) {
+        for (neighbour_iterator it = next.node->nb_begin(); it != next.node->nb_end(); ++it) {
             Node* neighbor = it->first;
             int weight = it->second;
             int newMark = next.mark + weight;

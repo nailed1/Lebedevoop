@@ -1,161 +1,162 @@
+#include "DateTime.h"
 #include "MoonData.h"
 #include <iostream>
-#include <fstream>
-#include <string>
 #include <sstream>
-#include <cstdio>
-#include <iomanip>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
-// Определение формата файла по заголовку
-static bool detectFileType(ifstream& file) {
-    string header;
-    getline(file, header);
-    // Если в заголовке есть "T", значит есть колонка с температурой
-    return header.find("T") != string::npos;
-}
-
-// Основная функция обработки
-MoonResult processMoonData(const DateTime& target) {
-    MoonResult result;
+// Простая функция для тестирования DateTime
+void testDateTime() {
+    cout << "=== DateTime Tests ===" << endl;
     
-    // Формируем имя файла (безопасный способ)
-    char filename[50];
-    snprintf(filename, sizeof(filename), "Moon/moon%d.dat", target.getYear());
-    
-    ifstream file(filename);
-    if (!file.is_open()) {
-        result.ok = false;
-        return result;
+    try {
+        // Создание дат
+        DateTime dt1(2024, 3, 15);
+        DateTime dt2(2024, 3, 15, 14, 30, 0);
+        DateTime dt3(2024, 6, 21);
+        
+        cout << "Date only: " << dt1 << endl;
+        cout << "Date with time: " << dt2 << endl;
+        
+        // Сравнения
+        cout << "dt1 < dt3: " << (dt1 < dt3) << endl;
+        cout << "dt1 == dt2: " << (dt1 == dt2) << endl;
+        
+        // День недели
+        cout << "Day of week for 2024-03-15: " << dt1.getDayOfWeek() << endl;
+        
+        // Пасха
+        DateTime easter = DateTime::getEaster(2024);
+        cout << "Easter 2024: " << easter << endl;
+        
+        // Добавление дней
+        DateTime dt4 = dt1.addDays(100);
+        cout << "100 days after 2024-03-15: " << dt4 << endl;
+    } catch (DateTimeException& e) {
+        cout << "DateTime error occurred!" << endl;
     }
     
-    cout << "Opened file: " << filename << endl;
+    cout << endl;
+}
+
+// Тестирование лунных данных
+void testMoonData() {
+    cout << "=== Moon Data Tests ===" << endl;
     
-    bool hasTColumn = detectFileType(file);
-    cout << (hasTColumn ? "Full format" : "Short format") << endl;
+    // Тестовые даты
+    DateTime dates[] = {
+        DateTime(2024, 3, 15),
+        DateTime(2024, 6, 21),
+        DateTime(2024, 12, 31)
+    };
     
-    // Читаем все строки файла
-    string line;
-    int lineNum = 0;
-    bool foundTargetDate = false;
-    double prevEl = -999.0;
-    double maxEl = -999.0;
+    for (const auto& date : dates) {
+        cout << "\n--- Testing " << date << " ---" << endl;
+        
+        MoonResult result = processMoonData(date);
+        printResult(date, result);
+    }
+}
+
+// Интерактивный режим
+void interactiveMode() {
+    cout << "=== Interactive Moon Data Query ===" << endl;
     
-    while (getline(file, line)) {
-        lineNum++;
+    while (true) {
+        cout << "\nEnter date (YYYY-MM-DD) or 'q' to quit: ";
         
-        int ymd, hms;
-        double r, el, az, fi, lg;
-        double t = 0; // возможно, не используется
+        string input;
+        getline(cin, input);
         
-        // Парсим строку
-        stringstream ss(line);
-        ss >> ymd >> hms;
-        
-        if (ss.fail()) {
-            cerr << "Warning: Cannot parse line " << lineNum << ": " << line << endl;
-            continue;
-        }
-        
-        if (hasTColumn) {
-            ss >> t;
-        }
-        
-        ss >> r >> el >> az >> fi >> lg;
-        
-        if (ss.fail()) {
-            cerr << "Warning: Cannot parse data on line " << lineNum << endl;
-            continue;
-        }
-        
-        // Извлекаем дату
-        int year = ymd / 10000;
-        int month = (ymd / 100) % 100;
-        int day = ymd % 100;
-        
-        // Проверяем, та ли это дата
-        if (year == target.getYear() && month == target.getMonth() && day == target.getDay()) {
-            foundTargetDate = true;
-            
-            // Извлекаем время
-            int hour = hms / 10000;
-            int minute = (hms / 100) % 100;
-            int second = hms % 100;
-            
-            DateTime dt(year, month, day, hour, minute, second);
-            
-            // Проверяем кульминацию
-            if (el > maxEl) {
-                maxEl = el;
-                result.culminationTime = dt;
-                result.hasCulmination = true;
-            }
-            
-            // Проверяем восход
-            if (prevEl < 0 && el > 0 && prevEl != -999.0) {
-                result.riseTime = dt;
-                result.hasRise = true;
-            }
-            
-            // Проверяем заход
-            if (prevEl >= 0 && el < 0 && prevEl != -999.0) {
-                result.setTime = dt;
-                result.hasSet = true;
-            }
-            
-            prevEl = el;
-        } 
-        else if (foundTargetDate) {
-            // Мы уже прошли целевую дату - можно выходить
+        if (input == "q" || input == "Q") {
             break;
         }
+        
+        // Парсим дату из строки
+        int year, month, day;
+        char sep1, sep2;
+        stringstream ss(input);
+        ss >> year >> sep1 >> month >> sep2 >> day;
+        
+        if (ss.fail() || sep1 != '-' || sep2 != '-') {
+            cout << "Invalid date format. Use YYYY-MM-DD" << endl;
+            continue;
+        }
+        
+        try {
+            DateTime target(year, month, day);
+            
+            clock_t start = clock();
+            MoonResult result = processMoonData(target);
+            clock_t end = clock();
+            
+            double time = double(end - start) / CLOCKS_PER_SEC;
+            cout << "Search time: " << time << " seconds" << endl;
+            
+            printResult(target, result);
+        } catch (DateTimeException& e) {
+            cout << "Invalid date!" << endl;
+        }
     }
-    
-    file.close();
-    cout << "Processed " << lineNum << " lines" << endl;
-    
-    return result;
 }
 
-void printResult(const DateTime& target, const MoonResult& result) {
-    cout << "\n=== Moon Data for " << target << " ===" << endl;
+int main() {
+    cout << "Moon Data Processor" << endl;
+    cout << "===================" << endl;
     
-    if (!result.ok) {
-        cout << "Error: Cannot open data file" << endl;
-        return;
+    int choice = 0;
+    
+    cout << "\nChoose mode:" << endl;
+    cout << "1. Run tests" << endl;
+    cout << "2. Interactive mode" << endl;
+    cout << "3. Quick query" << endl;
+    cout << "Enter choice (1-3): ";
+    
+    cin >> choice;
+    cin.ignore(); // Очищаем буфер
+    
+    switch (choice) {
+        case 1:
+            testDateTime();
+            testMoonData();
+            break;
+            
+        case 2:
+            interactiveMode();
+            break;
+            
+        case 3: {
+            int year, month, day;
+            char sep;
+            cout << "Enter date (YYYY-MM-DD): ";
+            cin >> year >> sep >> month >> sep >> day;
+            
+            try {
+                DateTime target(year, month, day);
+                
+                clock_t start = clock();
+                MoonResult result = processMoonData(target);
+                clock_t end = clock();
+                
+                double time = double(end - start) / CLOCKS_PER_SEC;
+                cout << "Search time: " << time << " seconds" << endl;
+                
+                printResult(target, result);
+            } catch (DateTimeException& e) {
+                cout << "Invalid date!" << endl;
+            }
+            break;
+        }
+        
+        default:
+            cout << "Invalid choice!" << endl;
     }
     
-    // Вывод времени восхода
-    cout << "Rise: ";
-    if (result.hasRise) {
-        cout << setfill('0') << setw(2) << result.riseTime.getHour() << ":"
-             << setfill('0') << setw(2) << result.riseTime.getMinute() << ":"
-             << setfill('0') << setw(2) << result.riseTime.getSecond();
-    } else {
-        cout << "---";
-    }
-    cout << endl;
+    cout << "\nPress Enter to exit...";
+    cin.ignore();
+    cin.get();
     
-    // Вывод времени кульминации
-    cout << "Culmination: ";
-    if (result.hasCulmination) {
-        cout << setfill('0') << setw(2) << result.culminationTime.getHour() << ":"
-             << setfill('0') << setw(2) << result.culminationTime.getMinute() << ":"
-             << setfill('0') << setw(2) << result.culminationTime.getSecond();
-    } else {
-        cout << "---";
-    }
-    cout << endl;
-    
-    // Вывод времени захода
-    cout << "Set: ";
-    if (result.hasSet) {
-        cout << setfill('0') << setw(2) << result.setTime.getHour() << ":"
-             << setfill('0') << setw(2) << result.setTime.getMinute() << ":"
-             << setfill('0') << setw(2) << result.setTime.getSecond();
-    } else {
-        cout << "---";
-    }
-    cout << endl;
+    return 0;
 }
