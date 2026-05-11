@@ -7,7 +7,7 @@
 #include "dijkstra.h"
 #include "utils.h"
 
-// ========== ПРОТОТИПЫ ФУНКЦИЙ ДЛЯ ВСЕХ ЗАДАЧ ==========
+// = ПРОТОТИПЫ ФУНКЦИЙ ДЛЯ ВСЕХ ЗАДАЧ =
 
 // Задачи с кратчайшими путями (из лекции)
 void task_shortestPathAtoI();
@@ -23,7 +23,7 @@ void task_checkConnectivity();
 // Показ меню
 void showMainMenu();
 
-// ========== ГЛАВНАЯ ФУНКЦИЯ ==========
+// = ГЛАВНАЯ ФУНКЦИЯ =
 
 int main() {
     setlocale(LC_ALL, "Russian");
@@ -75,31 +75,31 @@ int main() {
     return 0;
 }
 
-// ========== МЕНЮ ==========
+// = МЕНЮ =
 
 void showMainMenu() {
-    std::cout << "\n========================================" << std::endl;
+    std::cout << "\n=" << std::endl;
     std::cout << "       АЛГОРИТМЫ НА ГРАФАХ" << std::endl;
-    std::cout << "========================================" << std::endl;
+    std::cout << "=" << std::endl;
     std::cout << "\n>>> ЗАДАЧИ С КРАТЧАЙШИМИ ПУТЯМИ:" << std::endl;
-    std::cout << "1. Кратчайший путь из A в I (граф из лекции)" << std::endl;
-    std::cout << "2. Кратчайший путь из 1 в 9 (ваш граф)" << std::endl;
+    std::cout << "1. Кратчайший путь из A в I" << std::endl;
+    std::cout << "2. Кратчайший путь из 1 в 9" << std::endl;
     std::cout << "\n>>> ПОИСК НЕПЕРЕСЕКАЮЩИХСЯ ГРАФОВ:" << std::endl;
     std::cout << "3. Поиск компонент связности (testgraph.txt)" << std::endl;
     std::cout << "4. Поиск компонент связности (1000.csv)" << std::endl;
     std::cout << "\n>>> ДОПОЛНИТЕЛЬНЫЕ ЗАДАЧИ:" << std::endl;
     std::cout << "5. Проверка связности двух вершин" << std::endl;
     std::cout << "\n>>> 0. ВЫХОД" << std::endl;
-    std::cout << "========================================" << std::endl;
+    std::cout << "=" << std::endl;
     std::cout << "Выберите задачу: ";
 }
 
-// ========== ЗАДАЧА 1: Кратчайший путь A -> I ==========
+// = ЗАДАЧА 1: Кратчайший путь A -> I =
 
 void task_shortestPathAtoI() {
-    std::cout << "\n========================================" << std::endl;
+    std::cout << "\n=" << std::endl;
     std::cout << "   ЗАДАЧА 1: Кратчайший путь A -> I" << std::endl;
-    std::cout << "========================================" << std::endl;
+    std::cout << "=" << std::endl;
     
     Graph g;
     
@@ -143,9 +143,9 @@ void task_shortestPathAtoI() {
     Way result = Dijkstra(g).shortestWay(a, i);
     
     if (result.length != -1) {
-        std::cout << "\n✅ Оптимальный путь найден!" << std::endl;
-        std::cout << "📏 Длина пути: " << result.length << std::endl;
-        std::cout << "🛤️  Маршрут: ";
+        std::cout << "\nОптимальный путь найден!" << std::endl;
+        std::cout << "Длина пути: " << result.length << std::endl;
+        std::cout << "Маршрут: ";
         for (size_t i = 0; i < result.nodes.size(); ++i) {
             std::cout << result.nodes[i]->getName();
             if (i < result.nodes.size() - 1) {
@@ -154,16 +154,16 @@ void task_shortestPathAtoI() {
         }
         std::cout << std::endl;
     } else {
-        std::cout << "\n❌ Пути не существует!" << std::endl;
+        std::cout << "\n Пути не существует!" << std::endl;
     }
 }
 
-// ========== ЗАДАЧА 2: Кратчайший путь 1 -> 9 ==========
+// = ЗАДАЧА 2: Кратчайший путь 1 -> 9 =
 
 void task_shortestPath1to9() {
-    std::cout << "\n========================================" << std::endl;
+    std::cout << "\n=" << std::endl;
     std::cout << "   ЗАДАЧА 2: Кратчайший путь 1 -> 9" << std::endl;
-    std::cout << "========================================" << std::endl;
+    std::cout << "=" << std::endl;
     
     Graph g;
     
@@ -221,9 +221,9 @@ void task_shortestPath1to9() {
     Way result = Dijkstra(g).shortestWay(n1, n9);
     
     if (result.length != -1) {
-        std::cout << "\n✅ Оптимальный путь найден!" << std::endl;
-        std::cout << "📏 Длина пути: " << result.length << std::endl;
-        std::cout << "🛤️  Маршрут: ";
+        std::cout << "\nОптимальный путь найден!" << std::endl;
+        std::cout << "Длина пути: " << result.length << std::endl;
+        std::cout << "Маршрут: ";
         for (size_t i = 0; i < result.nodes.size(); ++i) {
             std::cout << result.nodes[i]->getName();
             if (i < result.nodes.size() - 1) {
@@ -232,17 +232,17 @@ void task_shortestPath1to9() {
         }
         std::cout << std::endl;
     } else {
-        std::cout << "\n❌ Пути не существует!" << std::endl;
+        std::cout << "\n Пути не существует!" << std::endl;
     }
 }
 
-// ========== ЗАДАЧА 3: Непересекающиеся графы (testgraph.txt) ==========
+// = ЗАДАЧА 3: Непересекающиеся графы (testgraph.txt) =
 
 void task_findDisjointGraphs_testgraph() {
-    std::cout << "\n========================================" << std::endl;
+    std::cout << "\n=" << std::endl;
     std::cout << " ЗАДАЧА 3: Компоненты связности" << std::endl;
     std::cout << "         (testgraph.txt)" << std::endl;
-    std::cout << "========================================" << std::endl;
+    std::cout << "=" << std::endl;
     
     Graph graph("testgraph.txt");
     printGraphInfo(graph);
@@ -264,13 +264,11 @@ void task_findDisjointGraphs_testgraph() {
     std::cout << "\n>>> Задача 3 выполнена успешно!" << std::endl;
 }
 
-// ========== ЗАДАЧА 4: Непересекающиеся графы (1000.csv) ==========
+// = ЗАДАЧА 4: Непересекающиеся графы (1000.csv) =
 
 void task_findDisjointGraphs_1000csv() {
-    std::cout << "\n========================================" << std::endl;
     std::cout << " ЗАДАЧА 4: Компоненты связности" << std::endl;
     std::cout << "         (1000.csv)" << std::endl;
-    std::cout << "========================================" << std::endl;
     
     Graph graph("1000.csv");
     printGraphInfo(graph);
@@ -292,12 +290,10 @@ void task_findDisjointGraphs_1000csv() {
     std::cout << "\n>>> Задача 4 выполнена успешно!" << std::endl;
 }
 
-// ========== ЗАДАЧА 5: Проверка связности двух вершин ==========
+// = ЗАДАЧА 5: Проверка связности двух вершин =
 
 void task_checkConnectivity() {
-    std::cout << "\n========================================" << std::endl;
     std::cout << " ЗАДАЧА 5: Проверка связности вершин" << std::endl;
-    std::cout << "========================================" << std::endl;
     
     std::string filename;
     std::cout << "Введите имя файла с графом: ";
@@ -331,10 +327,10 @@ void task_checkConnectivity() {
     
     std::cout << "\n>>> Результат:" << std::endl;
     if (connected) {
-        std::cout << "✅ Вершины " << v1 << " и " << v2 << " СВЯЗАНЫ" << std::endl;
+        std::cout << "Вершины " << v1 << " и " << v2 << " СВЯЗАНЫ" << std::endl;
         std::cout << "   (существует путь между ними)" << std::endl;
     } else {
-        std::cout << "❌ Вершины " << v1 << " и " << v2 << " НЕ СВЯЗАНЫ" << std::endl;
+        std::cout << "Вершины " << v1 << " и " << v2 << " НЕ СВЯЗАНЫ" << std::endl;
         std::cout << "   (пути не существует)" << std::endl;
     }
     

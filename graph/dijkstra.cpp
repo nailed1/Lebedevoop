@@ -1,12 +1,12 @@
 #include "dijkstra.h"
 #include <algorithm>
 
-// ========== РЕАЛИЗАЦИЯ MarkedNode ==========
+// РЕАЛИЗАЦИЯ MarkedNode
 
 MarkedNode::MarkedNode(Node* anode, int amark, Node* aprev)
     : node(anode), mark(amark), prev(aprev) {}
 
-// ========== РЕАЛИЗАЦИЯ PriorityQueue ==========
+// РЕАЛИЗАЦИЯ PriorityQueue
 
 MarkedNode PriorityQueue::pop() {
     MarkedNode mn = nodes.back();
@@ -34,11 +34,11 @@ bool PriorityQueue::empty() const {
     return nodes.empty();
 }
 
-// ========== РЕАЛИЗАЦИЯ Way ==========
+// РЕАЛИЗАЦИЯ Way
 
 Way::Way() : length(-1) {}
 
-// ========== РЕАЛИЗАЦИЯ Dijkstra ==========
+// РЕАЛИЗАЦИЯ Dijkstra
 
 Dijkstra::Dijkstra(const Graph& agraph) : graph(agraph) {}
 

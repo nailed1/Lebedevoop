@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iostream>
 
-// ========== РЕАЛИЗАЦИЯ NODE ==========
+// РЕАЛИЗАЦИЯ NODE
 
 Node::Node(const std::string& aname) : name(aname) {}
 
@@ -39,7 +39,7 @@ int Node::getWeight(Node* from) const {
     return 0;
 }
 
-// ========== РЕАЛИЗАЦИЯ GRAPH ==========
+// РЕАЛИЗАЦИЯ GRAPH
 
 Graph::Graph() {}
 

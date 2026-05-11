@@ -36,7 +36,7 @@ void saveAllComponents(const std::vector<std::set<Node*>>& components, const std
 }
 
 void printGraphInfo(const Graph& graph) {
-    std::cout << "\n=== Информация о графе ===" << std::endl;
+    std::cout << "\n Информация о графе " << std::endl;
     std::cout << "Количество вершин: " << graph.size() << std::endl;
     
     int edgeCount = 0;
@@ -51,11 +51,10 @@ void printGraphInfo(const Graph& graph) {
     edgeCount /= 2;  // Каждое ребро посчитано дважды
     
     std::cout << "Количество рёбер: " << edgeCount << std::endl;
-    std::cout << "==========================" << std::endl;
 }
 
 void printComponentsInfo(const std::vector<std::set<Node*>>& components) {
-    std::cout << "\n=== Найдено компонент связности: " << components.size() << " ===" << std::endl;
+    std::cout << "\n Найдено компонент связности: " << components.size() << " " << std::endl;
     
     for (size_t i = 0; i < components.size(); ++i) {
         std::cout << "\nКомпонента " << (i + 1) << ":" << std::endl;

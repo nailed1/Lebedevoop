@@ -13,9 +13,9 @@ void testDateTime() {
     
     try {
         // Создание дат
-        DateTime dt1(2024, 3, 15);
-        DateTime dt2(2024, 3, 15, 14, 30, 0);
-        DateTime dt3(2024, 6, 21);
+        DateTime dt1(2022, 3, 15);
+        DateTime dt2(2022, 3, 15, 14, 30, 0);
+        DateTime dt3(2022, 6, 21);
         
         cout << "Date only: " << dt1 << endl;
         cout << "Date with time: " << dt2 << endl;
@@ -25,15 +25,15 @@ void testDateTime() {
         cout << "dt1 == dt2: " << (dt1 == dt2) << endl;
         
         // День недели
-        cout << "Day of week for 2024-03-15: " << dt1.getDayOfWeek() << endl;
+        cout << "Day of week for 2022-03-15: " << dt1.getDayOfWeek() << endl;
         
         // Пасха
-        DateTime easter = DateTime::getEaster(2024);
-        cout << "Easter 2024: " << easter << endl;
+        DateTime easter = DateTime::getEaster(2022);
+        cout << "Easter 2022: " << easter << endl;
         
         // Добавление дней
         DateTime dt4 = dt1.addDays(100);
-        cout << "100 days after 2024-03-15: " << dt4 << endl;
+        cout << "100 days after 2022-03-15: " << dt4 << endl;
     } catch (DateTimeException& e) {
         cout << "DateTime error occurred!" << endl;
     }
@@ -47,9 +47,9 @@ void testMoonData() {
     
     // Тестовые даты
     DateTime dates[] = {
-        DateTime(2024, 3, 15),
-        DateTime(2024, 6, 21),
-        DateTime(2024, 12, 31)
+        DateTime(2022, 3, 15),
+        DateTime(2022, 6, 21),
+        DateTime(2022, 12, 31)
     };
     
     for (const auto& date : dates) {
