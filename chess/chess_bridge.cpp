@@ -10,7 +10,7 @@
 
 extern "C" {
 
-/* ── Lifecycle ──────────────────────────────────────────────────────────── */
+/*  Lifecycle  */
 
 void* chess_create() {
     Table* t = new Table();
@@ -26,7 +26,7 @@ void chess_reset(void* handle) {
     static_cast<Table*>(handle)->initialize();
 }
 
-/* ── Board snapshot ─────────────────────────────────────────────────────── */
+/*  Board snapshot ─ */
 
 /**
  * Fill `out` with 64 chars (+ NUL terminator) representing the board.
@@ -44,7 +44,7 @@ void chess_get_board(void* handle, char* out) {
     out[64] = '\0';
 }
 
-/* ── Turn / state ───────────────────────────────────────────────────────── */
+/*  Turn / state ─ */
 
 /** Returns 'W' or 'B'. */
 char chess_get_turn(void* handle) {
@@ -76,7 +76,7 @@ int chess_is_in_check(void* handle, char color) {
     return t->isInCheck(c) ? 1 : 0;
 }
 
-/* ── Move generation ────────────────────────────────────────────────────── */
+/*  Move generation  */
 
 /**
  * Get legal destination squares for the piece at (r, c).
@@ -95,7 +95,7 @@ int chess_get_valid_moves(void* handle, int r, int c, int* positions) {
     return n;
 }
 
-/* ── Execute move ───────────────────────────────────────────────────────── */
+/*  Execute move ─ */
 
 /**
  * Make a move from (fr, fc) to (tr, tc).
@@ -114,7 +114,7 @@ int chess_make_move(void* handle, int fr, int fc, int tr, int tc, char promotion
     return t->makeMove(fr, fc, tr, tc, promo) ? 1 : 0;
 }
 
-/* ── AI ─────────────────────────────────────────────────────────────────── */
+/*  AI ─ */
 
 /**
  * Find the best move for `color` at the given search depth (3 recommended).

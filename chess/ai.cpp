@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <climits>
 
-// ── Material values (centipawns) ──────────────────────────────────────────────
+//  Material values (centipawns) 
 static int pieceValue(PieceType t) {
     switch (t) {
         case PieceType::Pawn:   return 100;
@@ -16,7 +16,7 @@ static int pieceValue(PieceType t) {
     }
 }
 
-// ── Piece-square tables ───────────────────────────────────────────────────────
+//  Piece-square tables ─
 // Indexed [row][col] where row 0 = rank 1 (white's back rank).
 // For white pieces use [r][c] directly.
 // For black pieces mirror the row: use [7-r][c].
@@ -100,7 +100,7 @@ static int pst(PieceType t, Color col, int r, int c) {
     }
 }
 
-// ── Static evaluation ─────────────────────────────────────────────────────────
+//  Static evaluation ─
 // Positive = good for White, negative = good for Black.
 static int evaluate(const Table& t) {
     int score = 0;
@@ -115,7 +115,7 @@ static int evaluate(const Table& t) {
     return score;
 }
 
-// ── Move list for one side ────────────────────────────────────────────────────
+//  Move list for one side 
 static std::vector<Move> collectMoves(const Table& t, Color color) {
     std::vector<Move> moves;
     moves.reserve(40);
@@ -150,7 +150,7 @@ static std::vector<Move> collectMoves(const Table& t, Color color) {
     return moves;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+//  Helpers ─
 static PieceType charToPromo(char p) {
     switch (p) {
         case 'R': return PieceType::Rook;
@@ -160,7 +160,7 @@ static PieceType charToPromo(char p) {
     }
 }
 
-// ── Minimax with alpha-beta ───────────────────────────────────────────────────
+//  Minimax with alpha-beta ─
 // Score convention: positive = good for White, negative = good for Black.
 // `depth` is remaining half-moves; White maximises, Black minimises.
 static int minimax(const Table& t, int depth, int alpha, int beta) {
@@ -200,7 +200,7 @@ static int minimax(const Table& t, int depth, int alpha, int beta) {
     return best;
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+//  Public API 
 Move getBestMove(const Table& table, Color color, int depth) {
     auto moves = collectMoves(table, color);
     if (moves.empty()) return {-1, -1, -1, -1, 'Q'};

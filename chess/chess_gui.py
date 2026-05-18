@@ -9,7 +9,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox
 
-# ── Load shared library ───────────────────────────────────────────────────────
+#  Load shared library ─
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _lib  = ctypes.CDLL(os.path.join(_HERE, "libchess.dylib"))
 
@@ -45,7 +45,7 @@ _lib.chess_get_best_move.argtypes = [
 _lib.chess_get_best_move.restype = ctypes.c_int
 
 
-# ── C++ engine wrapper ────────────────────────────────────────────────────────
+#  C++ engine wrapper 
 class ChessEngine:
     def __init__(self):
         self._h        = _lib.chess_create()
@@ -89,7 +89,7 @@ class ChessEngine:
             self._h, fr, fc, tr, tc, promotion.encode()
         ))
 
-    def get_best_move(self, color: str, depth: int = 3):
+    def get_best_move(self, color: str, depth: int = 5):
         """Returns (fr, fc, tr, tc, promo_char) or None."""
         if _lib.chess_get_best_move(self._h, color.encode(), depth, self._ai_buf):
             fr, fc, tr, tc = self._ai_buf[:4]
@@ -106,7 +106,7 @@ class ChessEngine:
         return None
 
 
-# ── Visual constants ──────────────────────────────────────────────────────────
+#  Visual constants 
 SQ       = 80
 LIGHT    = "#F0D9B5"
 DARK     = "#B58863"
@@ -121,10 +121,10 @@ UNICODE = {
     'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
 }
 
-AI_DEPTH = 3   # half-moves; increase for stronger play (4 is noticeably slower)
+AI_DEPTH = 5   # half-moves; increase for stronger play (4 is noticeably slower)
 
 
-# ── GUI ───────────────────────────────────────────────────────────────────────
+#  GUI ─
 class ChessGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -140,7 +140,7 @@ class ChessGUI:
         self.ai_mode   = False
         self.ai_busy   = False   # True while AI is thinking
 
-        # ── Layout ────────────────────────────────────────────────────────────
+        #  Layout 
         board_px = 8 * SQ
         self.canvas = tk.Canvas(root, width=board_px, height=board_px,
                                 highlightthickness=0)
@@ -173,7 +173,7 @@ class ChessGUI:
         self._draw()
         self._update_status()
 
-    # ── Coords ────────────────────────────────────────────────────────────────
+    #  Coords 
     @staticmethod
     def _xy(r: int, c: int) -> tuple[int, int]:
         return c * SQ, (7 - r) * SQ
@@ -182,7 +182,7 @@ class ChessGUI:
     def _rc(x: int, y: int) -> tuple[int, int]:
         return 7 - y // SQ, x // SQ
 
-    # ── Draw ──────────────────────────────────────────────────────────────────
+    #  Draw 
     def _draw(self):
         cv  = self.canvas
         cv.delete("all")
@@ -257,7 +257,7 @@ class ChessGUI:
             suffix = "  |  Check!" if eng.is_in_check(eng.turn()) else ""
             self.status_var.set(f"{who}{ai_tag}'s turn{suffix}")
 
-    # ── Player input ──────────────────────────────────────────────────────────
+    #  Player input 
     def _on_click(self, event: tk.Event):
         eng = self.engine
         if eng.is_game_over() or self.ai_busy:
@@ -320,7 +320,7 @@ class ChessGUI:
         if self.ai_mode and eng.turn() == 'B' and not eng.is_game_over():
             self._trigger_ai()
 
-    # ── AI ────────────────────────────────────────────────────────────────────
+    # AI
     def _trigger_ai(self):
         """Run the AI search in a background thread; apply result on main thread."""
         self.ai_busy = True
@@ -349,7 +349,7 @@ class ChessGUI:
         if self.engine.is_game_over():
             self._show_game_over()
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+    #  Helpers ─
     def _show_game_over(self):
         eng = self.engine
         msg = (
@@ -413,7 +413,7 @@ class ChessGUI:
         return result[0]
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+#  Entry point ─
 def main():
     root = tk.Tk()
     ChessGUI(root)

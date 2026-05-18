@@ -41,6 +41,7 @@ class_DateTime/Moon/
 build/
 Debug/
 Release/
+.claude/
 x64/
 x86/
 out/
@@ -73,5 +74,4 @@ desktop.ini
 # Precompiled Headers
 *.gch
 *.pch
-"/git/" 
-.claude/
+"/git/"
