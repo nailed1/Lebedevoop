@@ -5,41 +5,39 @@
 #include <vector>
 #include <map>
 
-// Структура для хранения помеченной вершины
 struct MarkedNode {
     Node* node;
-    int mark;       // Длина пути от начала
-    Node* prev;     // Предыдущая вершина в пути
-    
-    MarkedNode(Node* anode = 0, int amark = 0, Node* aprev = 0);
+    int   mark;
+    Node* prev;
+
+    MarkedNode(Node* node = nullptr, int mark = 0, Node* prev = nullptr);
 };
 
-// Очередь с приоритетами
 class PriorityQueue {
     std::vector<MarkedNode> nodes;
-    
+
 public:
+    void       push(Node* node, int mark, Node* prev);
     MarkedNode pop();
-    void push(Node* node, int mark, Node* prev);
-    bool empty() const;
+    bool       empty() const;
 };
 
-// Структура пути
 struct Way {
     std::vector<Node*> nodes;
     int length;
-    
+
     Way();
 };
 
-// Алгоритм Дейкстры
 class Dijkstra {
-    const Graph& graph;
-    
-    static Way unroll(std::map<Node*, MarkedNode> visited, Node* begin, Node* curr);
-    
+    [[maybe_unused]] const Graph& graph;
+
+    static Way unroll(const std::map<Node*, MarkedNode>& visited,
+                      Node* begin, Node* end);
+
 public:
-    Dijkstra(const Graph& agraph);
+    explicit Dijkstra(const Graph& graph);
+
     Way shortestWay(Node* begin, Node* end);
 };
 

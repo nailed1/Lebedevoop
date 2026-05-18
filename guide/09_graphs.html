@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>09. Графы и алгоритмы — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html" class="active"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Графы и алгоритмы</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 09</div>
+    <h1>Графы: BFS, DFS, Дейкстра</h1>
+    <p class="subtitle">Граф из классов, обход в ширину и глубину, алгоритм кратчайшего пути — всё через ООП.</p>
+
+    <h2>Архитектура графа</h2>
+    <p>В <code>graph/</code> граф представлен тремя слоями классов, связанных через <code>friend</code>:</p>
+
+    <div class="tree">
+<span class="node">Graph</span>               <span class="cm">← владеет узлами, загружает из файла</span><br>
+├── <span class="node">Node</span>            <span class="cm">← узел (вершина) с именем и соседями</span><br>
+│   └── neighbours  <span class="cm">← map&lt;Node*, int&gt; (сосед → вес ребра)</span><br>
+├── <span class="node">BFS</span>             <span class="cm">← обход в ширину (friend Node)</span><br>
+├── <span class="node">DFS</span>             <span class="cm">← обход в глубину (friend Node)</span><br>
+└── <span class="node">Dijkstra</span>        <span class="cm">← кратчайший путь (friend Node)</span><br>
+    </div>
+
+    <h2>Класс Node</h2>
+    <pre><div class="code-label">graph/graph.h — класс Node</div><code><span class="kw">class</span> <span class="tp">Node</span> {
+<span class="kw">private</span>:
+    std::<span class="tp">string</span> name;
+    std::<span class="tp">map</span>&lt;<span class="tp">Node</span>*, <span class="tp">int</span>&gt; neighbours; <span class="cm">// смежные узлы + вес ребра</span>
+
+<span class="kw">public</span>:
+    <span class="fn">Node</span>(<span class="kw">const</span> std::<span class="tp">string</span>&amp; name) : name(name) {}
+
+    <span class="kw">const</span> std::<span class="tp">string</span>&amp; <span class="fn">getName</span>() <span class="kw">const</span> { <span class="kw">return</span> name; }
+    <span class="kw">void</span> <span class="fn">addNeighbour</span>(<span class="tp">Node</span>* n, <span class="tp">int</span> weight) { neighbours[n] = weight; }
+
+    <span class="cm">// Итераторы для обхода соседей</span>
+    <span class="kw">using</span> <span class="tp">neighbour_iterator</span> = std::<span class="tp">map</span>&lt;<span class="tp">Node</span>*,<span class="tp">int</span>&gt;::<span class="tp">const_iterator</span>;
+    <span class="tp">neighbour_iterator</span> <span class="fn">nb_begin</span>() <span class="kw">const</span> { <span class="kw">return</span> neighbours.<span class="fn">begin</span>(); }
+    <span class="tp">neighbour_iterator</span> <span class="fn">nb_end</span>()   <span class="kw">const</span> { <span class="kw">return</span> neighbours.<span class="fn">end</span>(); }
+
+    <span class="cm">// Алгоритмы — друзья: они могут читать приватный neighbours</span>
+    <span class="kw">friend class</span> <span class="tp">BFS</span>;
+    <span class="kw">friend class</span> <span class="tp">DFS</span>;
+    <span class="kw">friend class</span> <span class="tp">Dijkstra</span>;
+};</code></pre>
+
+    <h2>BFS — Обход в ширину</h2>
+    <p>BFS (Breadth-First Search) — исследует граф "слоями", начиная от стартового узла. Использует очередь (<code>std::queue</code>).</p>
+
+    <pre><div class="code-label">graph/BFS.cpp — алгоритм BFS</div><code><span class="cm">// Проверка связности двух вершин</span>
+<span class="kw">bool</span> <span class="tp">BFS</span>::<span class="fn">connected</span>(<span class="tp">Node</span>* begin, <span class="tp">Node</span>* end) {
+    <span class="kw">if</span> (begin == end) <span class="kw">return true</span>;
+
+    std::<span class="tp">set</span>&lt;<span class="tp">Node</span>*&gt;   visited;   <span class="cm">// посещённые вершины</span>
+    std::<span class="tp">queue</span>&lt;<span class="tp">Node</span>*&gt; queue;     <span class="cm">// очередь для BFS</span>
+
+    queue.<span class="fn">push</span>(begin);
+    visited.<span class="fn">insert</span>(begin);
+
+    <span class="kw">while</span> (!queue.<span class="fn">empty</span>()) {
+        <span class="tp">Node</span>* current = queue.<span class="fn">front</span>();
+        queue.<span class="fn">pop</span>();
+
+        <span class="cm">// Перебираем всех соседей текущего узла</span>
+        <span class="kw">for</span> (<span class="kw">auto</span> it = current-&gt;<span class="fn">nb_begin</span>(); it != current-&gt;<span class="fn">nb_end</span>(); ++it) {
+            <span class="tp">Node</span>* neighbor = it-&gt;first;
+            <span class="kw">if</span> (neighbor == end) <span class="kw">return true</span>;  <span class="cm">// нашли!</span>
+            <span class="kw">if</span> (visited.<span class="fn">count</span>(neighbor) == <span class="nm">0</span>) {
+                visited.<span class="fn">insert</span>(neighbor);
+                queue.<span class="fn">push</span>(neighbor);
+            }
+        }
+    }
+    <span class="kw">return false</span>;
+}</code></pre>
+
+    <h2>DFS — Обход в глубину</h2>
+    <p>DFS (Depth-First Search) — идёт как можно глубже прежде чем вернуться. Реализован рекурсивно.</p>
+
+    <pre><div class="code-label">graph/DFS.cpp — рекурсивный DFS</div><code><span class="kw">bool</span> <span class="tp">DFS</span>::<span class="fn">connected</span>(<span class="tp">Node</span>* begin, <span class="tp">Node</span>* end) {
+    std::<span class="tp">set</span>&lt;<span class="tp">Node</span>*&gt; visited;
+    <span class="kw">return</span> <span class="fn">dfs_helper</span>(begin, end, visited);
+}
+
+<span class="kw">bool</span> <span class="tp">DFS</span>::<span class="fn">dfs_helper</span>(<span class="tp">Node</span>* current, <span class="tp">Node</span>* target,
+                       std::<span class="tp">set</span>&lt;<span class="tp">Node</span>*&gt;&amp; visited) {
+    <span class="kw">if</span> (current == target) <span class="kw">return true</span>;
+    visited.<span class="fn">insert</span>(current);
+
+    <span class="kw">for</span> (<span class="kw">auto</span> it = current-&gt;<span class="fn">nb_begin</span>(); it != current-&gt;<span class="fn">nb_end</span>(); ++it) {
+        <span class="tp">Node</span>* neighbor = it-&gt;first;
+        <span class="kw">if</span> (visited.<span class="fn">count</span>(neighbor) == <span class="nm">0</span>) {
+            <span class="kw">if</span> (<span class="fn">dfs_helper</span>(neighbor, target, visited))
+                <span class="kw">return true</span>;  <span class="cm">// рекурсивный вызов</span>
+        }
+    }
+    <span class="kw">return false</span>;
+}</code></pre>
+
+    <h2>Алгоритм Дейкстры</h2>
+    <p>Находит кратчайший путь от стартовой вершины до целевой в графе с неотрицательными весами рёбер.</p>
+
+    <pre><div class="code-label">graph/dijkstra.cpp — алгоритм Дейкстры</div><code><span class="kw">struct</span> <span class="tp">MarkedNode</span> {
+    <span class="tp">Node</span>* node;
+    <span class="tp">int</span>   dist;    <span class="cm">// расстояние от старта</span>
+    <span class="tp">Node</span>* prev;    <span class="cm">// предыдущий узел (для восстановления пути)</span>
+
+    <span class="cm">// Для priority_queue: меньшее расстояние — больший приоритет</span>
+    <span class="kw">bool operator</span>&gt;(<span class="kw">const</span> <span class="tp">MarkedNode</span>&amp; o) <span class="kw">const</span> { <span class="kw">return</span> dist &gt; o.dist; }
+};
+
+<span class="tp">Way</span> <span class="tp">Dijkstra</span>::<span class="fn">shortestWay</span>(<span class="tp">Node</span>* begin, <span class="tp">Node</span>* end) {
+    <span class="cm">// priority_queue: MinHeap — узел с минимальным расстоянием первый</span>
+    std::<span class="tp">priority_queue</span>&lt;<span class="tp">MarkedNode</span>,
+                        std::<span class="tp">vector</span>&lt;<span class="tp">MarkedNode</span>&gt;,
+                        std::<span class="tp">greater</span>&lt;<span class="tp">MarkedNode</span>&gt;&gt; pq;
+
+    std::<span class="tp">map</span>&lt;<span class="tp">Node</span>*, <span class="tp">int</span>&gt;   dist;  <span class="cm">// кратчайшие расстояния</span>
+    std::<span class="tp">map</span>&lt;<span class="tp">Node</span>*, <span class="tp">Node</span>*&gt; prev;  <span class="cm">// предшественники для пути</span>
+
+    dist[begin] = <span class="nm">0</span>;
+    pq.<span class="fn">push</span>({begin, <span class="nm">0</span>, <span class="kw">nullptr</span>});
+
+    <span class="kw">while</span> (!pq.<span class="fn">empty</span>()) {
+        <span class="kw">auto</span> [node, d, p] = pq.<span class="fn">top</span>(); pq.<span class="fn">pop</span>();
+
+        <span class="kw">if</span> (d &gt; dist[node]) <span class="kw">continue</span>; <span class="cm">// устаревшая запись</span>
+
+        <span class="kw">for</span> (<span class="kw">auto</span> it = node-&gt;<span class="fn">nb_begin</span>(); it != node-&gt;<span class="fn">nb_end</span>(); ++it) {
+            <span class="tp">Node</span>* nb     = it-&gt;first;
+            <span class="tp">int</span>   newDist = d + it-&gt;second;
+
+            <span class="kw">if</span> (dist.<span class="fn">count</span>(nb) == <span class="nm">0</span> || newDist &lt; dist[nb]) {
+                dist[nb] = newDist;
+                prev[nb] = node;
+                pq.<span class="fn">push</span>({nb, newDist, node});
+            }
+        }
+    }
+
+    <span class="cm">// Восстановление пути</span>
+    <span class="tp">Way</span> way;
+    <span class="kw">for</span> (<span class="tp">Node</span>* n = end; n != <span class="kw">nullptr</span>; n = prev.<span class="fn">count</span>(n) ? prev[n] : <span class="kw">nullptr</span>)
+        way.nodes.<span class="fn">push_front</span>(n);
+    way.totalDist = dist.<span class="fn">count</span>(end) ? dist[end] : -<span class="nm">1</span>;
+    <span class="kw">return</span> way;
+}</code></pre>
+
+    <h2>Сравнение алгоритмов</h2>
+    <table>
+      <tr><th>Алгоритм</th><th>Структура данных</th><th>Применение</th><th>Сложность</th></tr>
+      <tr><td><strong>BFS</strong></td><td>Очередь (queue)</td><td>Кратчайший путь в невзвешенном графе, компоненты связности</td><td>O(V + E)</td></tr>
+      <tr><td><strong>DFS</strong></td><td>Стек (рекурсия)</td><td>Достижимость, топологическая сортировка, циклы</td><td>O(V + E)</td></tr>
+      <tr><td><strong>Dijkstra</strong></td><td>Приоритетная очередь</td><td>Кратчайший путь во взвешенном графе (веса ≥ 0)</td><td>O((V+E) log V)</td></tr>
+    </table>
+
+    <h2>Паттерны ООП в графе</h2>
+    <ul>
+      <li><strong>Friend classes</strong> — BFS, DFS, Dijkstra являются друзьями Node: могут читать приватный map соседей</li>
+      <li><strong>Strategy pattern</strong> — три разных алгоритма обхода с одинаковым интерфейсом (<code>connected()</code>)</li>
+      <li><strong>Iterator pattern</strong> — итераторы <code>nb_begin()</code> / <code>nb_end()</code> для обхода соседей без раскрытия внутренней структуры</li>
+    </ul>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz09">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">6 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 1</span>
+        <p>Какую структуру данных использует BFS?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Стек (stack)</label>
+          <label><input type="radio" name="q1" value="b"/> Очередь (queue) — FIFO, первый вошёл — первый вышел</label>
+          <label><input type="radio" name="q1" value="c"/> Приоритетная очередь</label>
+          <label><input type="radio" name="q1" value="d"/> Хэш-таблица</label>
+        </div>
+        <div class="explanation">BFS использует очередь: добавляет соседей в конец, обрабатывает с начала. Это обеспечивает обход "слоями" — сначала все вершины на расстоянии 1, потом 2 и т.д.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 2</span>
+        <p>Почему алгоритм Дейкстры не работает с отрицательными весами?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Технически невозможно</label>
+          <label><input type="radio" name="q2" value="b"/> Отрицательные веса запрещены стандартом</label>
+          <label><input type="radio" name="q2" value="c"/> Алгоритм предполагает, что найденное расстояние до вершины уже оптимально — с отрицательными рёбрами это нарушается</label>
+          <label><input type="radio" name="q2" value="d"/> Приоритетная очередь не поддерживает отрицательные значения</label>
+        </div>
+        <div class="explanation">Дейкстра помечает вершину как "обработанную" когда извлекает из очереди. При отрицательных весах может существовать более короткий путь через ещё не обработанные вершины. Для отрицательных весов используется алгоритм Беллмана-Форда.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 3</span>
+        <p>Зачем в Дейкстре есть проверка <code>if (d > dist[node]) continue;</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Пропускаем устаревшие записи в очереди — узел мог быть добавлен несколько раз с разными расстояниями</label>
+          <label><input type="radio" name="q3" value="b"/> Защита от отрицательных расстояний</label>
+          <label><input type="radio" name="q3" value="c"/> Проверка переполнения</label>
+          <label><input type="radio" name="q3" value="d"/> Проверка на нуль-указатель</label>
+        </div>
+        <div class="explanation">При обнаружении более короткого пути мы добавляем вершину в очередь снова (с новым расстоянием), не удаляя старую запись. Проверка пропускает обработку, если расстояние в очереди больше уже найденного оптимального.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 4</span>
+        <p>Зачем классы BFS, DFS, Dijkstra объявлены как <code>friend</code> для Node?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Для наследования</label>
+          <label><input type="radio" name="q4" value="b"/> Это просто стиль программирования</label>
+          <label><input type="radio" name="q4" value="c"/> Friend-классы работают быстрее</label>
+          <label><input type="radio" name="q4" value="d"/> Алгоритмам нужен прямой доступ к приватному полю neighbours для эффективного обхода, но снаружи оно должно быть скрыто</label>
+        </div>
+        <div class="explanation">Инкапсуляция: поле <code>neighbours</code> скрыто от произвольного внешнего кода. Но алгоритмы должны его читать. Friend-объявление даёт доступ именно этим классам, не открывая поле для всех. Это контролируемый обход инкапсуляции.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 5</span>
+        <p>DFS реализован рекурсивно. В чём риск глубокой рекурсии?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Рекурсия всегда медленнее итерации</label>
+          <label><input type="radio" name="q5" value="b"/> Переполнение стека (stack overflow) на очень больших графах</label>
+          <label><input type="radio" name="q5" value="c"/> Рекурсия не поддерживает set посещённых вершин</label>
+          <label><input type="radio" name="q5" value="d"/> Двойной обход вершин</label>
+        </div>
+        <div class="explanation">Каждый рекурсивный вызов занимает память стека. Для очень глубоких графов (много тысяч уровней) это может вызвать stack overflow. Итеративный DFS с явным стеком (std::stack) лишён этого ограничения.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 6</span>
+        <p>Какую роль играет <code>std::set&lt;Node*&gt; visited</code> в алгоритмах обхода?</p>
+        <div class="options">
+          <label><input type="radio" name="q6" value="a"/> Хранит результат обхода</label>
+          <label><input type="radio" name="q6" value="b"/> Хранит веса рёбер</label>
+          <label><input type="radio" name="q6" value="c"/> Предотвращает повторное посещение вершин — без него в графе с циклами обход был бы бесконечным</label>
+          <label><input type="radio" name="q6" value="d"/> Сортирует вершины по имени</label>
+        </div>
+        <div class="explanation">В графе могут быть циклы. Без отслеживания посещённых вершин обход зациклился бы. <code>visited</code> хранит уже обработанные вершины — перед добавлением в очередь/стек проверяем, не была ли вершина уже посещена.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="08_lists.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">08. Связные списки</span>
+      </a>
+      <a href="10_rational.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">10. Рациональные числа</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

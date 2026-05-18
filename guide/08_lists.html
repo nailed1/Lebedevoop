@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>08. Связные списки — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html" class="active"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Связные списки</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 08</div>
+    <h1>Связные списки</h1>
+    <p class="subtitle">Динамическая структура данных — шаблонный связный список <code>LineList&lt;T&gt;</code> из репозитория.</p>
+
+    <h2>Что такое связный список</h2>
+    <p>Связный список — это цепочка узлов (элементов), где каждый узел хранит данные и указатель на следующий узел. В отличие от массива, элементы не расположены подряд в памяти.</p>
+
+    <table>
+      <tr><th>Операция</th><th>Массив (Array)</th><th>Связный список</th></tr>
+      <tr><td>Доступ по индексу</td><td>O(1) — быстро</td><td>O(n) — надо пройти</td></tr>
+      <tr><td>Вставка в начало</td><td>O(n) — сдвиг</td><td>O(1) — быстро</td></tr>
+      <tr><td>Удаление из начала</td><td>O(n) — сдвиг</td><td>O(1) — быстро</td></tr>
+      <tr><td>Использование памяти</td><td>Плотное</td><td>+указатель на каждый элемент</td></tr>
+    </table>
+
+    <h2>Структура элемента списка</h2>
+
+    <pre><div class="code-label">class_list_array/LineList.h — элемент</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> <span class="tp">LineListElem</span> {
+<span class="kw">private</span>:
+    T data;                   <span class="cm">// полезная нагрузка</span>
+    <span class="tp">LineListElem</span>* next;        <span class="cm">// указатель на следующий</span>
+
+<span class="kw">public</span>:
+    <span class="fn">LineListElem</span>(<span class="kw">const</span> T&amp; d) : data(d), next(<span class="kw">nullptr</span>) {}
+
+    <span class="cm">// Только константный доступ к данным снаружи</span>
+    <span class="kw">const</span> T&amp; <span class="fn">getData</span>() <span class="kw">const</span> { <span class="kw">return</span> data; }
+    T&amp;       <span class="fn">getData</span>()       { <span class="kw">return</span> data; }
+
+    <span class="cm">// next — доступен только классу LineList через friend</span>
+    <span class="tp">LineListElem</span>* <span class="fn">getNext</span>() { <span class="kw">return</span> next; }
+
+    <span class="kw">friend class</span> <span class="tp">LineList</span>&lt;T&gt;;  <span class="cm">// список может менять next напрямую</span>
+};</code></pre>
+
+    <h2>Структура самого списка</h2>
+
+    <pre><div class="code-label">class_list_array/LineList.h — список</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> <span class="tp">LineList</span> {
+<span class="kw">private</span>:
+    <span class="tp">LineListElem</span>&lt;T&gt;* start;  <span class="cm">// указатель на первый элемент</span>
+    <span class="tp">LineListElem</span>&lt;T&gt;* tail;   <span class="cm">// указатель на последний (для быстрого добавления)</span>
+    <span class="tp">int</span> length;               <span class="cm">// количество элементов</span>
+
+<span class="kw">public</span>:
+    <span class="fn">LineList</span>() : start(<span class="kw">nullptr</span>), tail(<span class="kw">nullptr</span>), length(<span class="nm">0</span>) {}
+    ~<span class="fn">LineList</span>();
+
+    <span class="kw">void</span> <span class="fn">insertFirst</span>(<span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">insertLast</span>(<span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">insertAfter</span>(<span class="tp">LineListElem</span>&lt;T&gt;* ptr, <span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">deleteFirst</span>();
+    <span class="kw">void</span> <span class="fn">deleteAfter</span>(<span class="tp">LineListElem</span>&lt;T&gt;* ptr);
+
+    <span class="tp">int</span>               <span class="fn">getLength</span>() <span class="kw">const</span> { <span class="kw">return</span> length; }
+    <span class="tp">LineListElem</span>&lt;T&gt;* <span class="fn">getStart</span>() { <span class="kw">return</span> start; }
+};</code></pre>
+
+    <h2>Реализация операций</h2>
+
+    <h3>Вставка в начало — O(1)</h3>
+    <pre><div class="code-label">insertFirst — вставка в начало</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">void</span> <span class="tp">LineList</span>&lt;T&gt;::<span class="fn">insertFirst</span>(<span class="kw">const</span> T&amp; data) {
+    <span class="tp">LineListElem</span>&lt;T&gt;* newElem = <span class="kw">new</span> <span class="tp">LineListElem</span>&lt;T&gt;(data);
+
+    <span class="kw">if</span> (start == <span class="kw">nullptr</span>) {
+        <span class="cm">// Список пустой — новый элемент и первый, и последний</span>
+        start = tail = newElem;
+    } <span class="kw">else</span> {
+        newElem-&gt;next = start;  <span class="cm">// новый элемент указывает на старый первый</span>
+        start = newElem;        <span class="cm">// новый элемент стал первым</span>
+    }
+    length++;
+}</code></pre>
+
+    <h3>Вставка в конец — O(1)</h3>
+    <pre><div class="code-label">insertLast — вставка в конец</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">void</span> <span class="tp">LineList</span>&lt;T&gt;::<span class="fn">insertLast</span>(<span class="kw">const</span> T&amp; data) {
+    <span class="tp">LineListElem</span>&lt;T&gt;* newElem = <span class="kw">new</span> <span class="tp">LineListElem</span>&lt;T&gt;(data);
+
+    <span class="kw">if</span> (tail == <span class="kw">nullptr</span>) {
+        start = tail = newElem;
+    } <span class="kw">else</span> {
+        tail-&gt;next = newElem;  <span class="cm">// старый последний указывает на новый</span>
+        tail = newElem;        <span class="cm">// новый стал последним</span>
+    }
+    length++;
+}</code></pre>
+
+    <h3>Деструктор — освобождение всех узлов</h3>
+    <pre><div class="code-label">~LineList — освобождение памяти</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="tp">LineList</span>&lt;T&gt;::~<span class="fn">LineList</span>() {
+    <span class="tp">LineListElem</span>&lt;T&gt;* current = start;
+    <span class="kw">while</span> (current != <span class="kw">nullptr</span>) {
+        <span class="tp">LineListElem</span>&lt;T&gt;* next = current-&gt;next;  <span class="cm">// сохраняем следующий</span>
+        <span class="kw">delete</span> current;                          <span class="cm">// удаляем текущий</span>
+        current = next;                           <span class="cm">// переходим к следующему</span>
+    }
+}</code></pre>
+
+    <h2>Обход списка</h2>
+    <pre><div class="code-label">Обход через getNext()</div><code><span class="tp">LineList</span>&lt;<span class="tp">int</span>&gt; list;
+list.<span class="fn">insertLast</span>(<span class="nm">10</span>);
+list.<span class="fn">insertLast</span>(<span class="nm">20</span>);
+list.<span class="fn">insertLast</span>(<span class="nm">30</span>);
+
+<span class="cm">// Обход: начинаем с start, идём по next</span>
+<span class="kw">for</span> (<span class="kw">auto</span>* p = list.<span class="fn">getStart</span>(); p != <span class="kw">nullptr</span>; p = p-&gt;<span class="fn">getNext</span>()) {
+    std::cout &lt;&lt; p-&gt;<span class="fn">getData</span>() &lt;&lt; <span class="st">" "</span>;  <span class="cm">// 10 20 30</span>
+}</code></pre>
+
+    <h2>Циклический список</h2>
+    <p>В <code>class_list_array/LineListCycle.h</code> реализован циклический вариант, где последний элемент указывает на первый. Используется для решения задачи Иосифа Флавия:</p>
+
+    <pre><div class="code-label">class_list_array/LineListCycle.h</div><code><span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> <span class="tp">LineListCycle</span> {
+    <span class="tp">LineListElem</span>&lt;T&gt;* start; <span class="cm">// последний элемент указывает на start!</span>
+<span class="kw">public</span>:
+    <span class="kw">void</span> <span class="fn">insertAfter</span>(<span class="tp">LineListElem</span>&lt;T&gt;* ptr, <span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">deleteAfter</span>(<span class="tp">LineListElem</span>&lt;T&gt;* ptr);
+};
+
+<span class="cm">// Задача Иосифа: n людей в кольце, каждый k-й выбывает</span>
+<span class="kw">void</span> <span class="fn">josephus</span>(<span class="tp">int</span> n, <span class="tp">int</span> k) {
+    <span class="tp">LineListCycle</span>&lt;<span class="tp">int</span>&gt; circle;
+    <span class="cm">// Заполняем 1..n</span>
+    <span class="cm">// Каждый k-й шаг — удаляем элемент через deleteAfter</span>
+}</code></pre>
+
+    <h2>Ключевые ООП паттерны в списке</h2>
+    <ul>
+      <li><strong>friend class</strong> — <code>LineList&lt;T&gt;</code> является другом <code>LineListElem&lt;T&gt;</code>, может менять приватный <code>next</code></li>
+      <li><strong>Шаблон</strong> — один код для любого типа данных</li>
+      <li><strong>RAII</strong> — деструктор освобождает всю цепочку узлов</li>
+      <li><strong>Инкапсуляция</strong> — внешний код не может напрямую менять <code>next</code></li>
+    </ul>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz08">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 1</span>
+        <p>Какова сложность вставки в начало связного списка?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> O(n) — нужно сдвинуть все элементы</label>
+          <label><input type="radio" name="q1" value="b"/> O(log n)</label>
+          <label><input type="radio" name="q1" value="c"/> O(1) — создаём узел, меняем указатель start</label>
+          <label><input type="radio" name="q1" value="d"/> O(n²)</label>
+        </div>
+        <div class="explanation">В связном списке вставка в начало — O(1): создаём новый узел, его next = старый start, start = новый узел. Никаких сдвигов (в отличие от массива, где вставка в начало O(n)).</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 2</span>
+        <p>Почему <code>LineListElem</code> объявляет <code>friend class LineList&lt;T&gt;</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Для наследования</label>
+          <label><input type="radio" name="q2" value="b"/> Чтобы LineList мог напрямую изменять приватное поле next, не нарушая инкапсуляцию для внешнего кода</label>
+          <label><input type="radio" name="q2" value="c"/> Friend — это синоним public</label>
+          <label><input type="radio" name="q2" value="d"/> Без этого шаблон не скомпилируется</label>
+        </div>
+        <div class="explanation">Поле <code>next</code> — приватное. Снаружи его нельзя изменить. Но класс <code>LineList</code> должен менять <code>next</code> при вставке/удалении. Friend-объявление даёт доступ только ему, не открывая поле для всех.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 3</span>
+        <p>Зачем в <code>LineList</code> хранится и указатель <code>start</code>, и указатель <code>tail</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> tail позволяет добавлять в конец за O(1) без прохода по всему списку</label>
+          <label><input type="radio" name="q3" value="b"/> tail нужен для удаления</label>
+          <label><input type="radio" name="q3" value="c"/> tail — резервная копия start</label>
+          <label><input type="radio" name="q3" value="d"/> Стандарт требует два указателя</label>
+        </div>
+        <div class="explanation">Без указателя <code>tail</code> вставка в конец требовала бы прохода по всему списку O(n). С <code>tail</code> — мы сразу знаем последний элемент и добавляем за O(1).</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 4</span>
+        <p>В деструкторе <code>~LineList()</code> почему нужно сохранять <code>next</code> перед удалением текущего узла?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Для оптимизации</label>
+          <label><input type="radio" name="q4" value="b"/> Стандарт требует</label>
+          <label><input type="radio" name="q4" value="c"/> Иначе tail будет некорректным</label>
+          <label><input type="radio" name="q4" value="d"/> После delete узла его поля недоступны — нельзя получить next после удаления</label>
+        </div>
+        <div class="explanation">После <code>delete current</code> память освобождена. Обращение к <code>current->next</code> было бы обращением к удалённой памяти — undefined behavior. Поэтому сначала сохраняем <code>next</code>, потом удаляем узел.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 5</span>
+        <p>Чем циклический список <code>LineListCycle</code> отличается от обычного?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> В нём нет поля tail</label>
+          <label><input type="radio" name="q5" value="b"/> Последний элемент указывает на первый — нет null в конце цепочки</label>
+          <label><input type="radio" name="q5" value="c"/> В него нельзя вставить элемент</label>
+          <label><input type="radio" name="q5" value="d"/> Он хранит данные дважды</label>
+        </div>
+        <div class="explanation">В циклическом списке <code>tail->next == start</code>. Это позволяет бесконечно обходить круг — что нужно для задачи Иосифа. Важно: при обходе надо следить за условием остановки, иначе бесконечный цикл.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="07_memory.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">07. Управление памятью</span>
+      </a>
+      <a href="09_graphs.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">09. Графы и алгоритмы</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

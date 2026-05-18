@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>11. Дата и время — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html" class="active"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Дата и время</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 11 — Проект</div>
+    <h1>Дата и время</h1>
+    <p class="subtitle">Класс DateTime — валидация дат, формула Зеллера, алгоритм Гаусса для Пасхи, лунный календарь.</p>
+
+    <div class="callout info">
+      <div class="callout-title">Файлы</div>
+      <code>class_DateTime/DateTime.h</code>, <code>DateTime.cpp</code>, <code>MoonData.h</code>, <code>MoonData.cpp</code>
+    </div>
+
+    <h2>Структура класса DateTime</h2>
+
+    <pre><div class="code-label">class_DateTime/DateTime.h</div><code><span class="kw">class</span> <span class="tp">DateTime</span> {
+<span class="kw">private</span>:
+    <span class="tp">int</span> year, month, day;
+    <span class="tp">int</span> hour, minute, second;
+
+    <span class="cm">// Вспомогательные статические методы</span>
+    <span class="kw">static bool</span> <span class="fn">isLeapYear</span>(<span class="tp">int</span> y);
+    <span class="kw">static int</span>  <span class="fn">daysInMonth</span>(<span class="tp">int</span> m, <span class="tp">int</span> y);
+    <span class="kw">static bool</span> <span class="fn">isValidDate</span>(<span class="tp">int</span> y, <span class="tp">int</span> m, <span class="tp">int</span> d);
+
+<span class="kw">public</span>:
+    <span class="fn">DateTime</span>(<span class="tp">int</span> year, <span class="tp">int</span> month, <span class="tp">int</span> day,
+             <span class="tp">int</span> hour=<span class="nm">0</span>, <span class="tp">int</span> min=<span class="nm">0</span>, <span class="tp">int</span> sec=<span class="nm">0</span>);
+
+    <span class="cm">// Геттеры</span>
+    <span class="tp">int</span> <span class="fn">getYear</span>()   <span class="kw">const</span> { <span class="kw">return</span> year; }
+    <span class="tp">int</span> <span class="fn">getMonth</span>()  <span class="kw">const</span> { <span class="kw">return</span> month; }
+    <span class="tp">int</span> <span class="fn">getDay</span>()    <span class="kw">const</span> { <span class="kw">return</span> day; }
+
+    <span class="cm">// Вычисления</span>
+    <span class="tp">int</span>      <span class="fn">getDayOfWeek</span>() <span class="kw">const</span>;    <span class="cm">// формула Зеллера (0=вс, 1=пн...)</span>
+    <span class="tp">DateTime</span> <span class="fn">addDays</span>(<span class="tp">int</span> d) <span class="kw">const</span>;   <span class="cm">// прибавить дни</span>
+
+    <span class="cm">// Статические фабричные методы</span>
+    <span class="kw">static</span> <span class="tp">DateTime</span> <span class="fn">getEaster</span>(<span class="tp">int</span> year);  <span class="cm">// алгоритм Гаусса</span>
+    <span class="kw">static</span> <span class="tp">DateTime</span> <span class="fn">now</span>();               <span class="cm">// текущее время</span>
+
+    <span class="cm">// Операторы сравнения</span>
+    <span class="kw">bool operator</span>&lt;(<span class="kw">const</span> <span class="tp">DateTime</span>&amp; o) <span class="kw">const</span>;
+    <span class="kw">bool operator</span>==(<span class="kw">const</span> <span class="tp">DateTime</span>&amp; o) <span class="kw">const</span>;
+
+    <span class="cm">// Вывод</span>
+    <span class="kw">friend</span> std::<span class="tp">ostream</span>&amp; <span class="kw">operator</span>&lt;&lt;(std::<span class="tp">ostream</span>&amp;, <span class="kw">const</span> <span class="tp">DateTime</span>&amp;);
+};</code></pre>
+
+    <h2>Валидация и константы</h2>
+
+    <pre><div class="code-label">class_DateTime/DateTime.cpp — валидация</div><code><span class="kw">bool</span> <span class="tp">DateTime</span>::<span class="fn">isLeapYear</span>(<span class="tp">int</span> y) {
+    <span class="cm">// Год високосный если делится на 4, но не на 100,</span>
+    <span class="cm">// кроме случая деления на 400</span>
+    <span class="kw">return</span> (y % <span class="nm">4</span> == <span class="nm">0</span> &amp;&amp; y % <span class="nm">100</span> != <span class="nm">0</span>) || (y % <span class="nm">400</span> == <span class="nm">0</span>);
+}
+
+<span class="kw">int</span> <span class="tp">DateTime</span>::<span class="fn">daysInMonth</span>(<span class="tp">int</span> m, <span class="tp">int</span> y) {
+    <span class="kw">const int</span> days[] = {<span class="nm">31</span>,<span class="nm">28</span>,<span class="nm">31</span>,<span class="nm">30</span>,<span class="nm">31</span>,<span class="nm">30</span>,<span class="nm">31</span>,<span class="nm">31</span>,<span class="nm">30</span>,<span class="nm">31</span>,<span class="nm">30</span>,<span class="nm">31</span>};
+    <span class="kw">if</span> (m == <span class="nm">2</span> &amp;&amp; <span class="fn">isLeapYear</span>(y)) <span class="kw">return</span> <span class="nm">29</span>;
+    <span class="kw">return</span> days[m - <span class="nm">1</span>];
+}
+
+<span class="tp">DateTime</span>::<span class="fn">DateTime</span>(<span class="tp">int</span> y, <span class="tp">int</span> m, <span class="tp">int</span> d, <span class="tp">int</span> h, <span class="tp">int</span> min, <span class="tp">int</span> sec) {
+    <span class="kw">if</span> (!<span class="fn">isValidDate</span>(y, m, d))
+        <span class="kw">throw</span> std::<span class="tp">invalid_argument</span>(<span class="st">"Invalid date"</span>);
+    <span class="kw">if</span> (h &lt; <span class="nm">0</span> || h &gt;= <span class="nm">24</span> || min &lt; <span class="nm">0</span> || min &gt;= <span class="nm">60</span> || sec &lt; <span class="nm">0</span> || sec &gt;= <span class="nm">60</span>)
+        <span class="kw">throw</span> std::<span class="tp">invalid_argument</span>(<span class="st">"Invalid time"</span>);
+    year=y; month=m; day=d; hour=h; minute=min; second=sec;
+}</code></pre>
+
+    <h2>Формула Зеллера — день недели</h2>
+    <p>Формула Зеллера позволяет вычислить день недели для любой даты Григорианского календаря:</p>
+
+    <pre><div class="code-label">class_DateTime/DateTime.cpp — формула Зеллера</div><code><span class="tp">int</span> <span class="tp">DateTime</span>::<span class="fn">getDayOfWeek</span>() <span class="kw">const</span> {
+    <span class="tp">int</span> m = month, y = year;
+
+    <span class="cm">// В формуле январь и февраль — месяцы 13 и 14 предыдущего года</span>
+    <span class="kw">if</span> (m &lt;= <span class="nm">2</span>) { m += <span class="nm">12</span>; y--; }
+
+    <span class="tp">int</span> k = y % <span class="nm">100</span>;      <span class="cm">// год в веке</span>
+    <span class="tp">int</span> j = y / <span class="nm">100</span>;      <span class="cm">// номер века</span>
+
+    <span class="cm">// Формула Зеллера для Григорианского календаря</span>
+    <span class="tp">int</span> h = (day + (<span class="nm">13</span>*(m+<span class="nm">1</span>)/<span class="nm">5</span>) + k + (k/<span class="nm">4</span>) + (j/<span class="nm">4</span>) - <span class="nm">2</span>*j) % <span class="nm">7</span>;
+
+    <span class="cm">// h: 0=сб, 1=вс, 2=пн, ... → переводим в 0=вс, 1=пн...</span>
+    <span class="kw">return</span> ((h + <span class="nm">6</span>) % <span class="nm">7</span>);  <span class="cm">// 0=вс, 1=пн, 2=вт... 6=сб</span>
+}</code></pre>
+
+    <h2>Алгоритм Гаусса — дата Пасхи</h2>
+    <p>Пасха вычисляется по сложной формуле. Алгоритм Гаусса — один из вариантов:</p>
+
+    <pre><div class="code-label">class_DateTime/DateTime.cpp — формула Гаусса</div><code><span class="tp">DateTime</span> <span class="tp">DateTime</span>::<span class="fn">getEaster</span>(<span class="tp">int</span> year) {
+    <span class="tp">int</span> a = year % <span class="nm">19</span>;
+    <span class="tp">int</span> b = year % <span class="nm">4</span>;
+    <span class="tp">int</span> c = year % <span class="nm">7</span>;
+
+    <span class="tp">int</span> k = year / <span class="nm">100</span>;
+    <span class="tp">int</span> p = (<span class="nm">13</span> + <span class="nm">8</span>*k) / <span class="nm">25</span>;
+    <span class="tp">int</span> q = k / <span class="nm">4</span>;
+    <span class="tp">int</span> M = (<span class="nm">15</span> - p + k - q) % <span class="nm">30</span>;
+    <span class="tp">int</span> N = (<span class="nm">4</span> + k - q) % <span class="nm">7</span>;
+
+    <span class="tp">int</span> d = (<span class="nm">19</span>*a + M) % <span class="nm">30</span>;
+    <span class="tp">int</span> e = (<span class="nm">2</span>*b + <span class="nm">4</span>*c + <span class="nm">6</span>*d + N) % <span class="nm">7</span>;
+
+    <span class="cm">// Результат: 22 марта + d + e дней</span>
+    <span class="tp">int</span> easterDay   = <span class="nm">22</span> + d + e;
+    <span class="tp">int</span> easterMonth = <span class="nm">3</span>;
+
+    <span class="kw">if</span> (easterDay &gt; <span class="nm">31</span>) {
+        easterDay -= <span class="nm">31</span>;
+        easterMonth = <span class="nm">4</span>;
+    }
+    <span class="cm">// Два особых случая...</span>
+    <span class="kw">if</span> (d == <span class="nm">29</span> &amp;&amp; e == <span class="nm">6</span>) { easterDay = <span class="nm">19</span>; easterMonth = <span class="nm">4</span>; }
+    <span class="kw">if</span> (d == <span class="nm">28</span> &amp;&amp; e == <span class="nm">6</span> &amp;&amp; a &gt; <span class="nm">10</span>) { easterDay = <span class="nm">18</span>; easterMonth = <span class="nm">4</span>; }
+
+    <span class="kw">return</span> <span class="tp">DateTime</span>(year, easterMonth, easterDay);
+}</code></pre>
+
+    <h2>Прибавление дней с переходом через месяцы и годы</h2>
+
+    <pre><div class="code-label">class_DateTime/DateTime.cpp — addDays</div><code><span class="tp">DateTime</span> <span class="tp">DateTime</span>::<span class="fn">addDays</span>(<span class="tp">int</span> days) <span class="kw">const</span> {
+    <span class="tp">int</span> d = day + days, m = month, y = year;
+
+    <span class="cm">// Пока дней больше чем в текущем месяце — переходим к следующему</span>
+    <span class="kw">while</span> (d &gt; <span class="fn">daysInMonth</span>(m, y)) {
+        d -= <span class="fn">daysInMonth</span>(m, y);
+        m++;
+        <span class="kw">if</span> (m &gt; <span class="nm">12</span>) { m = <span class="nm">1</span>; y++; }
+    }
+    <span class="cm">// Аналогично для отрицательных дней (вычитание)</span>
+    <span class="kw">while</span> (d &lt;= <span class="nm">0</span>) {
+        m--;
+        <span class="kw">if</span> (m &lt; <span class="nm">1</span>) { m = <span class="nm">12</span>; y--; }
+        d += <span class="fn">daysInMonth</span>(m, y);
+    }
+    <span class="kw">return</span> <span class="tp">DateTime</span>(y, m, d, hour, minute, second);
+}</code></pre>
+
+    <h2>Класс MoonData — лунный календарь</h2>
+
+    <pre><div class="code-label">class_DateTime/MoonData.h</div><code><span class="kw">class</span> <span class="tp">MoonData</span> {
+<span class="kw">public</span>:
+    <span class="cm">// Вычисляет фазу луны для заданной даты</span>
+    <span class="kw">static double</span> <span class="fn">getMoonAge</span>(<span class="kw">const</span> <span class="tp">DateTime</span>&amp; date);
+    <span class="kw">static</span> std::<span class="tp">string</span> <span class="fn">getMoonPhase</span>(<span class="kw">const</span> <span class="tp">DateTime</span>&amp; date);
+
+    <span class="cm">// Возрастала луна — убывала луна</span>
+    <span class="kw">static bool</span> <span class="fn">isWaxing</span>(<span class="kw">const</span> <span class="tp">DateTime</span>&amp; date);
+};
+
+<span class="cm">// Алгоритм: лунный цикл = 29.53 суток</span>
+<span class="cm">// Нулевой эпохой берётся известное новолуние,</span>
+<span class="cm">// дальше считаем количество дней и берём остаток</span></code></pre>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz11">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 1</span>
+        <p>Какой год является високосным?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> 1900</label>
+          <label><input type="radio" name="q1" value="b"/> 2100</label>
+          <label><input type="radio" name="q1" value="c"/> 2000</label>
+          <label><input type="radio" name="q1" value="d"/> 2014</label>
+        </div>
+        <div class="explanation">Правило: делится на 4 → вероятно високосный; делится на 100 → не високосный; делится на 400 → високосный. 1900 делится на 100 но не на 400 → не високосный. 2000 делится на 400 → високосный. Метод <code>isLeapYear()</code> реализует именно это.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 2</span>
+        <p>Зачем в формуле Зеллера январь и февраль переводятся как "13-й и 14-й месяц предыдущего года"?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Формула работает с "мартовским годом" — февраль замыкает год. Это упрощает расчёт поправок на високосные годы</label>
+          <label><input type="radio" name="q2" value="b"/> Исторически правила были другими</label>
+          <label><input type="radio" name="q2" value="c"/> Для совместимости с Юлианским календарём</label>
+          <label><input type="radio" name="q2" value="d"/> Оптимизация вычислений</label>
+        </div>
+        <div class="explanation">Формула Зеллера считает год начинающимся с марта (3-й месяц). Тогда в конце "года" (13=январь, 14=февраль) проще учесть поправку на 29 февраля — она всегда в конце цикла.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 3</span>
+        <p>Метод <code>getEaster()</code> является статическим. Почему?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Для быстродействия</label>
+          <label><input type="radio" name="q3" value="b"/> Статические методы точнее</label>
+          <label><input type="radio" name="q3" value="c"/> Нельзя создать объект DateTime без даты</label>
+          <label><input type="radio" name="q3" value="d"/> Это фабричный метод: он создаёт и возвращает объект DateTime. Для его вызова не нужен существующий объект</label>
+        </div>
+        <div class="explanation">Статический фабричный метод: <code>DateTime easter = DateTime::getEaster(2025);</code>. Не нужно сначала создавать объект, чтобы вычислить другой. Это устойчивый паттерн для создания объектов со сложной логикой инициализации.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 4</span>
+        <p>Почему <code>addDays()</code> использует цикл, а не просто прибавляет к полю <code>day</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Цикл нагляднее</label>
+          <label><input type="radio" name="q4" value="b"/> Месяцы имеют разное количество дней, кроме того прибавление может перейти через границу нескольких месяцев и годов</label>
+          <label><input type="radio" name="q4" value="c"/> Прямое прибавление не поддерживается</label>
+          <label><input type="radio" name="q4" value="d"/> Для поддержки отрицательных дней</label>
+        </div>
+        <div class="explanation">При <code>addDays(365)</code> к 1 декабря нужно корректно пройти через декабрь (31 день), январь (31), февраль (28 или 29)... Цикл правильно учитывает переходы, включая високосные годы. Простое прибавление к числу месяца некорректно.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 5</span>
+        <p>Какой паттерн ООП реализует метод <code>DateTime::now()</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Singleton</label>
+          <label><input type="radio" name="q5" value="b"/> Observer</label>
+          <label><input type="radio" name="q5" value="c"/> Factory Method — статический метод создаёт и возвращает объект</label>
+          <label><input type="radio" name="q5" value="d"/> Builder</label>
+        </div>
+        <div class="explanation">Factory Method (фабричный метод): вместо <code>new DateTime(...)</code> используем <code>DateTime::now()</code>. Это инкапсулирует логику создания (получение системного времени, конвертацию) и даёт понятный, выразительный API.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="10_rational.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">10. Рациональные числа</span>
+      </a>
+      <a href="12_games.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">12. Игры</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

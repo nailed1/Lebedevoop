@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>02. Конструкторы и деструкторы — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html" class="active"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Конструкторы и деструкторы</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 02</div>
+    <h1>Конструкторы и деструкторы</h1>
+    <p class="subtitle">Жизненный цикл объекта: как он создаётся, копируется и уничтожается.</p>
+
+    <h2>Жизненный цикл объекта</h2>
+    <p>Каждый объект проходит три этапа:</p>
+    <ol>
+      <li><strong>Создание</strong> — вызывается конструктор, инициализируются поля</li>
+      <li><strong>Использование</strong> — вызываются методы, объект живёт</li>
+      <li><strong>Уничтожение</strong> — вызывается деструктор, освобождаются ресурсы</li>
+    </ol>
+
+    <h2>Виды конструкторов</h2>
+
+    <h3>1. Конструктор по умолчанию</h3>
+    <p>Вызывается без аргументов. Если не написать — компилятор сгенерирует автоматически (но он ничего не инициализирует!).</p>
+
+    <pre><div class="code-label">class_array/array.cpp</div><code><span class="tp">Array</span>::<span class="fn">Array</span>() {
+    ptr = <span class="kw">nullptr</span>;
+    size = <span class="nm">0</span>;
+    capacity = <span class="nm">0</span>;
+}
+
+<span class="cm">// Использование:</span>
+<span class="tp">Array</span> a;  <span class="cm">// вызывает конструктор по умолчанию</span></code></pre>
+
+    <h3>2. Конструктор с параметрами</h3>
+    <pre><div class="code-label">class_array/array.cpp</div><code><span class="tp">Array</span>::<span class="fn">Array</span>(<span class="tp">int</span> sz) {
+    size = sz;
+    capacity = sz;
+    ptr = <span class="kw">new</span> <span class="tp">int</span>[capacity];
+    <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; size; i++)
+        ptr[i] = <span class="nm">0</span>;  <span class="cm">// инициализируем нулями</span>
+}
+
+<span class="cm">// Использование:</span>
+<span class="tp">Array</span> a(<span class="nm">10</span>);  <span class="cm">// массив на 10 элементов</span></code></pre>
+
+    <h3>3. Конструктор копирования</h3>
+    <p>Создаёт новый объект как копию существующего. Важен при работе с динамической памятью — иначе два объекта укажут на один и тот же участок памяти (<em>проблема поверхностного копирования</em>).</p>
+
+    <pre><div class="code-label">class_array/array.cpp — глубокое копирование</div><code><span class="tp">Array</span>::<span class="fn">Array</span>(<span class="kw">const</span> <span class="tp">Array</span>&amp; arr) {
+    size     = arr.size;
+    capacity = arr.capacity;
+
+    <span class="cm">// Выделяем НОВЫЙ блок памяти — не копируем указатель!</span>
+    ptr = <span class="kw">new</span> <span class="tp">int</span>[capacity];
+    <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; size; i++)
+        ptr[i] = arr.ptr[i];  <span class="cm">// копируем данные</span>
+}
+
+<span class="cm">// Использование:</span>
+<span class="tp">Array</span> a(<span class="nm">5</span>);
+<span class="tp">Array</span> b = a;  <span class="cm">// вызывает конструктор копирования</span>
+<span class="tp">Array</span> c(a);   <span class="cm">// то же самое</span></code></pre>
+
+    <div class="callout danger">
+      <div class="callout-title">Проблема поверхностного копирования</div>
+      Если не написать конструктор копирования, компилятор скопирует <em>указатель</em>, а не данные. При удалении одного объекта второй останется с висячим указателем — это undefined behavior.
+    </div>
+
+    <h3>4. Список инициализации</h3>
+    <p>Более эффективный способ инициализировать поля — через список инициализации:</p>
+
+    <pre><div class="code-label">Список инициализации</div><code><span class="cm">// Без списка инициализации (сначала вызов конструктора по умолчанию,</span>
+<span class="cm">// потом присваивание — два шага)</span>
+<span class="tp">Rational</span>::<span class="fn">Rational</span>(<span class="tp">long long</span> n, <span class="tp">long long</span> d) {
+    num = n;  <span class="cm">// присваивание после инициализации</span>
+    den = d;
+    <span class="fn">simplify</span>();
+}
+
+<span class="cm">// Со списком инициализации (один шаг — сразу инициализация)</span>
+<span class="tp">Rational</span>::<span class="fn">Rational</span>(<span class="tp">long long</span> n, <span class="tp">long long</span> d) : num(n), den(d) {
+    <span class="fn">simplify</span>();  <span class="cm">// нормализация дроби</span>
+}
+
+<span class="cm">// Для const-полей и ссылок — только список инициализации!</span>
+<span class="kw">class</span> <span class="tp">Foo</span> {
+    <span class="kw">const</span> <span class="tp">int</span> id;
+<span class="kw">public</span>:
+    <span class="fn">Foo</span>(<span class="tp">int</span> i) : id(i) {}  <span class="cm">// обязательно!</span>
+};</code></pre>
+
+    <h2>Оператор присваивания</h2>
+    <p>Не путай с конструктором копирования! Оператор присваивания работает когда объект уже создан:</p>
+
+    <pre><div class="code-label">class_array/array.cpp — оператор присваивания</div><code><span class="tp">Array</span>&amp; <span class="tp">Array</span>::<span class="kw">operator</span>=(<span class="kw">const</span> <span class="tp">Array</span>&amp; arr) {
+    <span class="cm">// 1. Проверка самоприсваивания: a = a</span>
+    <span class="kw">if</span> (<span class="kw">this</span> == &amp;arr) <span class="kw">return</span> *<span class="kw">this</span>;
+
+    <span class="cm">// 2. Освобождаем старую память</span>
+    <span class="kw">delete</span>[] ptr;
+
+    <span class="cm">// 3. Копируем данные</span>
+    size     = arr.size;
+    capacity = arr.capacity;
+    ptr      = <span class="kw">new</span> <span class="tp">int</span>[capacity];
+    <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; size; i++)
+        ptr[i] = arr.ptr[i];
+
+    <span class="cm">// 4. Возвращаем *this для цепочек: a = b = c</span>
+    <span class="kw">return</span> *<span class="kw">this</span>;
+}</code></pre>
+
+    <h2>Деструктор</h2>
+    <p>Деструктор вызывается автоматически при выходе объекта из области видимости или при <code>delete</code>. Его задача — освободить ресурсы.</p>
+
+    <pre><div class="code-label">class_array/array.cpp</div><code><span class="tp">Array</span>::~<span class="fn">Array</span>() {
+    <span class="kw">delete</span>[] ptr;  <span class="cm">// освобождаем динамическую память</span>
+    ptr = <span class="kw">nullptr</span>; <span class="cm">// хорошая практика — обнулить указатель</span>
+}</code></pre>
+
+    <div class="callout info">
+      <div class="callout-title">Правило пяти (Rule of Five)</div>
+      Если тебе нужен хотя бы один из: деструктор, конструктор копирования, оператор присваивания, конструктор перемещения, оператор перемещения — скорее всего нужны все пять. В простых случаях (без динамической памяти) полагайся на автоматически сгенерированные версии.
+    </div>
+
+    <h2>Когда вызываются конструктор и деструктор</h2>
+
+    <pre><div class="code-label">Порядок вызовов</div><code><span class="kw">void</span> <span class="fn">foo</span>() {
+    <span class="tp">Array</span> a(<span class="nm">5</span>);      <span class="cm">// КОНСТРУКТОР Array(int)</span>
+    {
+        <span class="tp">Array</span> b = a;   <span class="cm">// КОНСТРУКТОР КОПИРОВАНИЯ Array(const Array&)</span>
+    }                  <span class="cm">// ДЕСТРУКТОР b — выход из блока</span>
+    <span class="tp">Array</span>* c = <span class="kw">new</span> <span class="tp">Array</span>(<span class="nm">3</span>);  <span class="cm">// КОНСТРУКТОР, объект в куче</span>
+    <span class="kw">delete</span> c;          <span class="cm">// ДЕСТРУКТОР c — явное удаление</span>
+}                      <span class="cm">// ДЕСТРУКТОР a — выход из функции</span></code></pre>
+
+    <h2>Правило нуля</h2>
+    <p>Если класс управляет только простыми данными (не указателями, не ресурсами) — не пиши деструктор вообще. Пусть компилятор делает всё сам. Используй <code>std::vector</code>, <code>std::unique_ptr</code> и т.д. вместо голых указателей.</p>
+
+    <pre><div class="code-label">chess/table.h — умные указатели вместо голых</div><code><span class="kw">class</span> <span class="tp">Table</span> {
+    <span class="cm">// unique_ptr сам освободит память — деструктор писать не нужно!</span>
+    std::<span class="tp">vector</span>&lt;std::<span class="tp">unique_ptr</span>&lt;<span class="tp">Figure</span>&gt;&gt; pieces;
+    std::<span class="tp">vector</span>&lt;std::<span class="tp">unique_ptr</span>&lt;<span class="tp">Figure</span>&gt;&gt; captured;
+<span class="kw">public</span>:
+    <span class="fn">Table</span>();
+    <span class="fn">Table</span>(<span class="kw">const</span> <span class="tp">Table</span>&amp;);  <span class="cm">// нужен, т.к. unique_ptr не копируется</span>
+};</code></pre>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz02">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 1</span>
+        <p>Что произойдёт при выполнении: <code>Array b = a;</code> если конструктор копирования не написан?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Ошибка компиляции</label>
+          <label><input type="radio" name="q1" value="b"/> Объект b не будет создан</label>
+          <label><input type="radio" name="q1" value="c"/> b и a будут указывать на одну и ту же область памяти (поверхностная копия)</label>
+          <label><input type="radio" name="q1" value="d"/> b получит новую пустую память</label>
+        </div>
+        <div class="explanation">Компилятор сгенерирует конструктор копирования, который скопирует поля побитово. Указатель <code>ptr</code> в обоих объектах будет указывать на один блок. При удалении первого объекта второй получит висячий указатель.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 2</span>
+        <p>Когда вызывается деструктор для объекта, созданного на стеке?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> При выходе объекта из области видимости</label>
+          <label><input type="radio" name="q2" value="b"/> При явном вызове <code>delete</code></label>
+          <label><input type="radio" name="q2" value="c"/> Только при завершении программы</label>
+          <label><input type="radio" name="q2" value="d"/> Только при вызове <code>free()</code></label>
+        </div>
+        <div class="explanation">Объекты на стеке уничтожаются автоматически при выходе из блока <code>{}</code>, в котором они объявлены. Это гарантировано языком C++.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 3</span>
+        <p>Зачем в операторе присваивания проверяют <code>if (this == &amp;arr)</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Это оптимизация производительности</label>
+          <label><input type="radio" name="q3" value="b"/> Без этой проверки <code>a = a</code> удалит данные до их копирования</label>
+          <label><input type="radio" name="q3" value="c"/> Стандарт требует эту проверку</label>
+          <label><input type="radio" name="q3" value="d"/> Без этого оператор не скомпилируется</label>
+        </div>
+        <div class="explanation">При <code>a = a</code> без проверки: сначала освобождается <code>ptr</code>, потом пытаемся скопировать данные из <code>arr.ptr</code> — но это тот же самый удалённый <code>ptr</code>! Результат — undefined behavior.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 4</span>
+        <p>Что такое список инициализации конструктора?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Список параметров конструктора</label>
+          <label><input type="radio" name="q4" value="b"/> Список методов, вызываемых в конструкторе</label>
+          <label><input type="radio" name="q4" value="c"/> Перечень объектов, которые нужно создать</label>
+          <label><input type="radio" name="q4" value="d"/> Синтаксис вида <code>: field1(val1), field2(val2)</code> для инициализации полей до тела конструктора</label>
+        </div>
+        <div class="explanation">Список инициализации идёт между <code>)</code> и <code>{</code> конструктора через двоеточие. Это единственный способ инициализировать <code>const</code>-поля и поля-ссылки. Также эффективнее, чем присваивание в теле.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 5</span>
+        <p>В каком случае достаточно использовать "Правило нуля" (не писать деструктор)?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Когда класс очень простой</label>
+          <label><input type="radio" name="q5" value="b"/> Всегда — деструкторы писать не нужно</label>
+          <label><input type="radio" name="q5" value="c"/> Когда класс не владеет ресурсами напрямую (использует RAII-обёртки: vector, unique_ptr и т.д.)</label>
+          <label><input type="radio" name="q5" value="d"/> Только для маленьких классов</label>
+        </div>
+        <div class="explanation">Если класс хранит только объекты с правильными деструкторами (vector, string, unique_ptr и т.д.), то не нужно писать деструктор, конструктор копирования и оператор присваивания — компилятор сгенерирует правильные версии.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="01_classes.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">01. Классы и инкапсуляция</span>
+      </a>
+      <a href="03_inheritance.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">03. Наследование</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

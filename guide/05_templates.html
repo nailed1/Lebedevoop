@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>05. Шаблоны (Templates) — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html" class="active"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Шаблоны</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 05</div>
+    <h1>Шаблоны (Templates)</h1>
+    <p class="subtitle">Обобщённое программирование: пишешь один раз, работает для любого типа.</p>
+
+    <h2>Зачем нужны шаблоны</h2>
+    <p>Представь, что нужно написать класс "Точка" для <code>int</code>, потом для <code>float</code>, потом для <code>double</code>. Без шаблонов — три одинаковых класса с разными именами. С шаблонами — один класс <code>Point&lt;T&gt;</code>, который работает для любого типа.</p>
+
+    <div class="def-box">
+      <div class="def-term">Шаблон (Template)</div>
+      <p>Параметризованный класс или функция. Параметр — тип (или значение). Компилятор генерирует конкретный код при каждом использовании с новым типом.</p>
+    </div>
+
+    <h2>Шаблонный класс Point</h2>
+    <p>Из <code>geometrical_figures/figures.h</code>:</p>
+
+    <pre><div class="code-label">geometrical_figures/figures.h</div><code><span class="cm">// template<typename T> — T это параметр типа</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> <span class="tp">Point</span> {
+<span class="kw">public</span>:
+    T x, y;
+    <span class="fn">Point</span>(T x, T y) : x(x), y(y) {}
+
+    <span class="cm">// Метод шаблонного класса</span>
+    <span class="tp">double</span> <span class="fn">distanceTo</span>(<span class="kw">const</span> <span class="tp">Point</span>&lt;T&gt;&amp; other) <span class="kw">const</span> {
+        <span class="tp">double</span> dx = x - other.x;
+        <span class="tp">double</span> dy = y - other.y;
+        <span class="kw">return</span> <span class="fn">sqrt</span>(dx*dx + dy*dy);
+    }
+};
+
+<span class="cm">// Использование — компилятор создаёт три разных класса:</span>
+<span class="tp">Point</span>&lt;<span class="tp">int</span>&gt;    pi(<span class="nm">1</span>, <span class="nm">2</span>);
+<span class="tp">Point</span>&lt;<span class="tp">float</span>&gt;  pf(<span class="nm">1.5f</span>, <span class="nm">2.5f</span>);
+<span class="tp">Point</span>&lt;<span class="tp">double</span>&gt; pd(<span class="nm">3.14</span>, <span class="nm">2.71</span>);</code></pre>
+
+    <h2>Шаблонный класс + наследование</h2>
+    <p>В репозитории шаблонные классы наследуют от нешаблонного базового класса — это позволяет хранить их в одном контейнере:</p>
+
+    <pre><div class="code-label">geometrical_figures/figures.h</div><code><span class="cm">// Нешаблонный базовый класс (интерфейс)</span>
+<span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="kw">virtual double</span> <span class="fn">calc_area</span>()      <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual double</span> <span class="fn">calc_perimeter</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual</span> ~<span class="fn">Figure</span>() = <span class="kw">default</span>;
+};
+
+<span class="cm">// Шаблонный производный класс</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> <span class="tp">Circle</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">private</span>:
+    <span class="tp">Point</span>&lt;T&gt; center;
+    <span class="tp">double</span>   radius;
+<span class="kw">public</span>:
+    <span class="fn">Circle</span>(<span class="tp">Point</span>&lt;T&gt; c, <span class="tp">double</span> r) : center(c), radius(r) {}
+    <span class="tp">double</span> <span class="fn">calc_area</span>()      <span class="kw">const override</span> { <span class="kw">return</span> M_PI * radius * radius; }
+    <span class="tp">double</span> <span class="fn">calc_perimeter</span>() <span class="kw">const override</span> { <span class="kw">return</span> <span class="nm">2</span> * M_PI * radius; }
+};
+
+<span class="cm">// Благодаря нешаблонному Figure, можно хранить все фигуры вместе:</span>
+std::<span class="tp">vector</span>&lt;<span class="tp">Figure</span>*&gt; shapes;
+shapes.<span class="fn">push_back</span>(<span class="kw">new</span> <span class="tp">Circle</span>&lt;<span class="tp">double</span>&gt;({<span class="nm">0</span>,<span class="nm">0</span>}, <span class="nm">5.0</span>));
+shapes.<span class="fn">push_back</span>(<span class="kw">new</span> <span class="tp">Rectangle</span>&lt;<span class="tp">int</span>&gt;({<span class="nm">0</span>,<span class="nm">0</span>}, {<span class="nm">4</span>,<span class="nm">3</span>}));</code></pre>
+
+    <h2>Шаблонный связный список LineList&lt;T&gt;</h2>
+    <p>Файл <code>class_list_array/LineList.h</code> — полноценный шаблонный контейнер:</p>
+
+    <pre><div class="code-label">class_list_array/LineList.h</div><code><span class="cm">// Элемент списка — тоже шаблонный</span>
+<span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> <span class="tp">LineListElem</span> {
+<span class="kw">private</span>:
+    T data;
+    <span class="tp">LineListElem</span>* next;
+<span class="kw">public</span>:
+    <span class="fn">LineListElem</span>(<span class="kw">const</span> T&amp; d) : data(d), next(<span class="kw">nullptr</span>) {}
+    <span class="kw">const</span> T&amp; <span class="fn">getData</span>() <span class="kw">const</span> { <span class="kw">return</span> data; }
+    <span class="tp">LineListElem</span>* <span class="fn">getNext</span>() { <span class="kw">return</span> next; }
+
+    <span class="kw">friend class</span> <span class="tp">LineList</span>&lt;T&gt;;  <span class="cm">// список может менять next</span>
+};
+
+<span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;
+<span class="kw">class</span> <span class="tp">LineList</span> {
+<span class="kw">private</span>:
+    <span class="tp">LineListElem</span>&lt;T&gt;* start;
+    <span class="tp">LineListElem</span>&lt;T&gt;* tail;
+    <span class="tp">int</span> length;
+<span class="kw">public</span>:
+    <span class="fn">LineList</span>() : start(<span class="kw">nullptr</span>), tail(<span class="kw">nullptr</span>), length(<span class="nm">0</span>) {}
+    ~<span class="fn">LineList</span>();
+
+    <span class="kw">void</span> <span class="fn">insertFirst</span>(<span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">insertLast</span>(<span class="kw">const</span> T&amp; data);
+    <span class="kw">void</span> <span class="fn">deleteFirst</span>();
+    <span class="tp">LineListElem</span>&lt;T&gt;* <span class="fn">getStart</span>() { <span class="kw">return</span> start; }
+};
+
+<span class="cm">// Использование для разных типов:</span>
+<span class="tp">LineList</span>&lt;<span class="tp">int</span>&gt;         intList;
+<span class="tp">LineList</span>&lt;std::<span class="tp">string</span>&gt; strList;
+<span class="tp">LineList</span>&lt;<span class="tp">Rational</span>&gt;    ratList;</code></pre>
+
+    <h2>Шаблонный Polygon — формула Гаусса</h2>
+
+    <pre><div class="code-label">geometrical_figures/figures.cpp — Polygon<T></div><code><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="tp">double</span> <span class="tp">Polygon</span>&lt;T&gt;::<span class="fn">calc_area</span>() <span class="kw">const</span> {
+    <span class="tp">int</span> n = vertices.<span class="fn">size</span>();
+    <span class="kw">if</span> (n &lt; <span class="nm">3</span>) <span class="kw">return</span> <span class="nm">0</span>;
+
+    <span class="tp">double</span> area = <span class="nm">0</span>;
+    <span class="cm">// Формула Гаусса (shoelace formula)</span>
+    <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; n; i++) {
+        <span class="tp">int</span> j = (i + <span class="nm">1</span>) % n;
+        area += (<span class="tp">double</span>)vertices[i].x * vertices[j].y;
+        area -= (<span class="tp">double</span>)vertices[j].x * vertices[i].y;
+    }
+    <span class="kw">return</span> std::<span class="fn">abs</span>(area) / <span class="nm">2.0</span>;
+}
+
+<span class="cm">// Явная инстанциация — помогает компилятору</span>
+<span class="kw">template class</span> <span class="tp">Polygon</span>&lt;<span class="tp">int</span>&gt;;
+<span class="kw">template class</span> <span class="tp">Polygon</span>&lt;<span class="tp">float</span>&gt;;
+<span class="kw">template class</span> <span class="tp">Polygon</span>&lt;<span class="tp">double</span>&gt;;</code></pre>
+
+    <h2>Шаблоны функций</h2>
+
+    <pre><div class="code-label">Шаблонная функция</div><code><span class="cm">// Универсальный swap — без шаблона пришлось бы писать для каждого типа</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">void</span> <span class="fn">mySwap</span>(T&amp; a, T&amp; b) {
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
+<span class="tp">int</span> x = <span class="nm">1</span>, y = <span class="nm">2</span>;
+<span class="fn">mySwap</span>(x, y);          <span class="cm">// компилятор выведет T = int</span>
+<span class="fn">mySwap</span>&lt;<span class="tp">double</span>&gt;(x, y);  <span class="cm">// явное указание типа</span></code></pre>
+
+    <div class="callout warn">
+      <div class="callout-title">Где размещать реализацию шаблона</div>
+      Реализация шаблонных классов и функций обычно размещается в <strong>.h-файле</strong>, а не в .cpp. Компилятор должен видеть полный код шаблона при инстанциации. Исключение — явная инстанциация (<code>template class Foo&lt;int&gt;;</code>) в .cpp файле.
+    </div>
+
+    <h2>typename vs. class в шаблонах</h2>
+    <p>Оба ключевых слова означают одно и то же при объявлении параметра типа:</p>
+    <pre><div class="code-label">typename и class — эквивалентны для параметров типа</div><code><span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt; <span class="kw">class</span> <span class="tp">Foo</span> {};  <span class="cm">// современный стиль</span>
+<span class="kw">template</span>&lt;<span class="kw">class</span> T&gt;    <span class="kw">class</span> <span class="tp">Bar</span> {};  <span class="cm">// старый стиль, тоже корректно</span>
+
+<span class="cm">// В репозитории используются оба варианта:</span>
+<span class="cm">// template<typename T> — в geometrical_figures</span>
+<span class="cm">// template<class T>    — в class_list_array</span></code></pre>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz05">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 1</span>
+        <p>Когда компилятор генерирует код для шаблонного класса?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> При объявлении шаблона</label>
+          <label><input type="radio" name="q1" value="b"/> При каждом использовании шаблона с конкретным типом (инстанциации)</label>
+          <label><input type="radio" name="q1" value="c"/> При запуске программы</label>
+          <label><input type="radio" name="q1" value="d"/> Никогда — шаблоны не генерируют код</label>
+        </div>
+        <div class="explanation">Шаблон сам по себе — это не код, а рецепт. Компилятор генерирует конкретный класс при каждой инстанциации: <code>Point&lt;int&gt;</code>, <code>Point&lt;double&gt;</code> — это два разных класса с одинаковой структурой.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 2</span>
+        <p>Зачем в репозитории класс <code>Figure</code> — нешаблонный, а <code>Circle&lt;T&gt;</code> — шаблонный?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Это ошибка дизайна</label>
+          <label><input type="radio" name="q2" value="b"/> Нешаблонный базовый быстрее работает</label>
+          <label><input type="radio" name="q2" value="c"/> Стандарт запрещает шаблонные базовые классы</label>
+          <label><input type="radio" name="q2" value="d"/> Нешаблонный базовый класс позволяет хранить Circle&lt;int&gt; и Circle&lt;double&gt; в одном vector&lt;Figure*&gt;</label>
+        </div>
+        <div class="explanation">Это умный дизайн: <code>Circle&lt;int&gt;</code> и <code>Circle&lt;double&gt;</code> — это разные типы. Если бы базовый класс тоже был шаблонным, нельзя было бы их смешивать. Нешаблонный базовый класс служит общим интерфейсом для полиморфного использования.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 3</span>
+        <p>В каком файле обычно размещается реализация шаблонного класса?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> В .h файле (заголовочном), так как компилятор должен видеть полное определение при инстанциации</label>
+          <label><input type="radio" name="q3" value="b"/> В .cpp файле, как обычно</label>
+          <label><input type="radio" name="q3" value="c"/> В отдельном .tpp файле, который .h не включает</label>
+          <label><input type="radio" name="q3" value="d"/> Место не имеет значения</label>
+        </div>
+        <div class="explanation">Шаблонный код должен быть виден компилятору в момент инстанциации. Поэтому реализация помещается прямо в .h или в .tpp который включается из .h. Исключение — явная инстанциация в .cpp, как в <code>geometrical_figures/figures.cpp</code>.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 4</span>
+        <p>Что означает <code>template class Polygon&lt;double&gt;;</code> в .cpp файле?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Создаётся новый класс</label>
+          <label><input type="radio" name="q4" value="b"/> Запрещается использовать другие типы</label>
+          <label><input type="radio" name="q4" value="c"/> Явная инстанциация — компилятор сразу генерирует все методы для double</label>
+          <label><input type="radio" name="q4" value="d"/> Синоним typedef</label>
+        </div>
+        <div class="explanation">Явная инстанциация (explicit instantiation) говорит компилятору сгенерировать весь код класса для указанного типа прямо здесь. Это позволяет держать реализацию в .cpp файле, а не в .h.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 5</span>
+        <p>В чём разница между шаблонным и виртуальным полиморфизмом?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Виртуальный быстрее</label>
+          <label><input type="radio" name="q5" value="b"/> Шаблонный разрешается при компиляции, виртуальный — в runtime. Шаблоны работают с типами, виртуальные функции — с объектами</label>
+          <label><input type="radio" name="q5" value="c"/> Разницы нет — это одно и то же</label>
+          <label><input type="radio" name="q5" value="d"/> Шаблоны нельзя комбинировать с наследованием</label>
+        </div>
+        <div class="explanation">Статический полиморфизм (шаблоны): типы подставляются при компиляции, накладные расходы нулевые. Динамический полиморфизм (виртуальные функции): выбор реализации в runtime через vtable, небольшие накладные расходы. Репозиторий использует оба подхода.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="04_polymorphism.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">04. Полиморфизм</span>
+      </a>
+      <a href="06_operators.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">06. Перегрузка операторов</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

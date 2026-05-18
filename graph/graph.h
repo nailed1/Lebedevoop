@@ -2,71 +2,56 @@
 #define GRAPH_H
 
 #include <string>
-#include <set>
 #include <map>
-#include <vector>
+#include <set>
 
-// Предварительное объявление
 class Node;
 
-// Итератор для обхода узлов графа (по set<Node*>)
-typedef std::set<Node*>::const_iterator node_iterator;
-
-// Итератор для обхода соседей узла (по map<Node*, int>)
+typedef std::set<Node*>::const_iterator      node_iterator;
 typedef std::map<Node*, int>::const_iterator neighbour_iterator;
 
-// Класс Узла графа
 class Node {
     std::string name;
-    std::map<Node*, int> neighbours;  // Сосед + вес ребра
-    
-    // Друзья получают доступ к приватным полям
-    friend class Graph;
-    friend class BFS;
-    friend class DFS;
-    friend class Dijkstra;
-    
+    std::map<Node*, int> neighbours;
+
 public:
-    Node(const std::string& aname);
+    explicit Node(const std::string& name);
+
     const std::string& getName() const;
-    int getNameAsInt() const;  // Преобразовать имя в число
-    
-    // Итераторы для обхода соседей (возвращаем neighbour_iterator!)
+    int getNameAsInt() const;
+
     neighbour_iterator nb_begin() const;
     neighbour_iterator nb_end() const;
-    
-    // Методы для работы с соседями (только для друзей)
+
     void addNeighbour(Node* neighbour, int weight);
     void removeNeighbour(Node* neighbour);
-    int getWeight(Node* from) const;
+    int  getWeight(Node* neighbour) const;
 };
 
-// Класс Графа
 class Graph {
-    std::set<Node*> nodes;
-    std::map<int, Node*> nodesByIndex;  // Для быстрого поиска по номеру
-    
+    std::set<Node*>          nodes;
+    std::map<std::string, Node*> nodeByName;
+
 public:
-    Graph();  // Конструктор по умолчанию
-    Graph(const char* file_name);  // Конструктор из файла
+    Graph() = default;
+    explicit Graph(const char* filename);
     ~Graph();
-    
+
+    Graph(const Graph&)            = delete;
+    Graph& operator=(const Graph&) = delete;
+
     void addNode(Node* node);
     void removeNode(Node* node);
-    void addEdge(Node* begin, Node* end, int weight = 1);
-    void removeEdge(Node* begin, Node* end);
-    
-    // Поиск узла по индексу
-    Node* getNodeByIndex(int index);
-    
-    // Итераторы для обхода всех узлов (возвращаем node_iterator)
+    void addEdge(Node* from, Node* to, int weight = 1);
+    void removeEdge(Node* from, Node* to);
+
+    Node* getNode(const std::string& name) const;
+    Node* getNodeByIndex(int index) const;
+
     node_iterator begin() const;
     node_iterator end() const;
-    
-    // Получение размера
     size_t size() const;
-    
-    // Очистка графа
+
     void clear();
 };
 

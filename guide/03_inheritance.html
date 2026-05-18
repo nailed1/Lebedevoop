@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>03. Наследование — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html" class="active"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Наследование</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 03</div>
+    <h1>Наследование</h1>
+    <p class="subtitle">Как строить иерархии классов, переиспользовать код и выражать отношение «является» между объектами.</p>
+
+    <h2>Что такое наследование</h2>
+    <p>Наследование позволяет создать новый класс (<em>производный</em>, <em>дочерний</em>) на основе существующего (<em>базового</em>, <em>родительского</em>). Производный класс <strong>наследует</strong> поля и методы базового и может добавлять свои или переопределять существующие.</p>
+
+    <div class="def-box">
+      <div class="def-term">Отношение "является" (is-a)</div>
+      <p>Наследование выражает: «Круг <em>является</em> Фигурой», «Парабола <em>является</em> Функцией», «Конь <em>является</em> Фигурой (шахматной)». Если нет такого отношения — наследование неуместно.</p>
+    </div>
+
+    <h2>Синтаксис наследования</h2>
+
+    <pre><div class="code-label">Базовый синтаксис</div><code><span class="kw">class</span> <span class="tp">Base</span> {
+<span class="kw">protected</span>:                  <span class="cm">// доступно наследникам</span>
+    <span class="tp">int</span> x;
+<span class="kw">public</span>:
+    <span class="kw">void</span> <span class="fn">hello</span>() { <span class="cm">/* ... */</span> }
+};
+
+<span class="kw">class</span> <span class="tp">Derived</span> : <span class="kw">public</span> <span class="tp">Base</span> {  <span class="cm">// ← публичное наследование</span>
+<span class="kw">public</span>:
+    <span class="kw">void</span> <span class="fn">world</span>() {
+        x = <span class="nm">5</span>;  <span class="cm">// OK — protected доступен наследнику</span>
+    }
+};</code></pre>
+
+    <h3>Типы наследования</h3>
+    <table>
+      <tr><th>Тип</th><th>public базового</th><th>protected базового</th><th>Когда использовать</th></tr>
+      <tr><td><code>public</code></td><td>→ public</td><td>→ protected</td><td>Выражает is-a отношение (чаще всего)</td></tr>
+      <tr><td><code>protected</code></td><td>→ protected</td><td>→ protected</td><td>Редко</td></tr>
+      <tr><td><code>private</code></td><td>→ private</td><td>→ private</td><td>Реализация через наследование (not is-a)</td></tr>
+    </table>
+
+    <h2>Иерархия геометрических фигур</h2>
+    <p>Файл <code>geometrical_figures/figures.h</code> — отличный пример иерархии:</p>
+
+    <div class="tree">
+<span class="abstract">Figure</span>  <span class="cm">(абстрактный базовый класс)</span><br>
+├── <span class="leaf">Circle&lt;T&gt;</span>      <span class="cm">← круг</span><br>
+├── <span class="leaf">Ellipse&lt;T&gt;</span>     <span class="cm">← эллипс</span><br>
+├── <span class="leaf">Triangle&lt;T&gt;</span>    <span class="cm">← треугольник (формула Герона)</span><br>
+├── <span class="leaf">Rectangle&lt;T&gt;</span>   <span class="cm">← прямоугольник</span><br>
+└── <span class="leaf">Polygon&lt;T&gt;</span>     <span class="cm">← многоугольник (формула Гаусса)</span><br>
+    </div>
+
+    <pre><div class="code-label">geometrical_figures/figures.h</div><code><span class="cm">// Базовый класс — определяет интерфейс</span>
+<span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="kw">virtual double</span> <span class="fn">calc_area</span>()      <span class="kw">const</span> = <span class="nm">0</span>;  <span class="cm">// чисто виртуальные</span>
+    <span class="kw">virtual double</span> <span class="fn">calc_perimeter</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual</span> ~<span class="fn">Figure</span>() = <span class="kw">default</span>;   <span class="cm">// виртуальный деструктор!</span>
+};
+
+<span class="cm">// Производный класс</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> T&gt;
+<span class="kw">class</span> <span class="tp">Circle</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">private</span>:
+    <span class="tp">Point</span>&lt;T&gt; center;
+    <span class="tp">double</span>   radius;
+<span class="kw">public</span>:
+    <span class="fn">Circle</span>(<span class="tp">Point</span>&lt;T&gt; c, <span class="tp">double</span> r) : center(c), radius(r) {}
+
+    <span class="cm">// Переопределяем методы базового класса</span>
+    <span class="tp">double</span> <span class="fn">calc_area</span>()      <span class="kw">const override</span> { <span class="kw">return</span> M_PI * radius * radius; }
+    <span class="tp">double</span> <span class="fn">calc_perimeter</span>() <span class="kw">const override</span> { <span class="kw">return</span> <span class="nm">2</span> * M_PI * radius; }
+};</code></pre>
+
+    <h2>Иерархия математических функций</h2>
+    <p>Файл <code>function/Function.h</code> — ещё один пример. Базовый класс предоставляет общие алгоритмы (интегрирование, дифференцирование), а наследники переопределяют только <code>calculate()</code>:</p>
+
+    <div class="tree">
+<span class="abstract">Function</span>  <span class="cm">(абстрактный)</span><br>
+├── <span class="leaf">Parabola</span>    <span class="cm">← ax² + bx + c</span><br>
+├── <span class="leaf">Hiperbola</span>   <span class="cm">← k/x</span><br>
+├── <span class="leaf">Exponenta</span>   <span class="cm">← a·e^(bx)</span><br>
+└── <span class="leaf">Polinom</span>     <span class="cm">← многочлен степени n</span><br>
+    </div>
+
+    <pre><div class="code-label">function/Function.h</div><code><span class="kw">class</span> <span class="tp">Function</span> {
+<span class="kw">public</span>:
+    <span class="cm">// Чисто виртуальные — ОБЯЗАНЫ переопределить наследники</span>
+    <span class="kw">virtual double</span> <span class="fn">calculate</span>(<span class="tp">double</span> x) <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual void</span>   <span class="fn">print</span>(<span class="tp">double</span> x)    <span class="kw">const</span> = <span class="nm">0</span>;
+
+    <span class="cm">// Невиртуальные методы с дефолтной реализацией</span>
+    <span class="cm">// Используют calculate() — шаблонный метод!</span>
+    <span class="kw">virtual double</span> <span class="fn">integrate</span>(<span class="tp">double</span> a, <span class="tp">double</span> b, <span class="tp">int</span> n = <span class="nm">1000</span>) <span class="kw">const</span>;
+    <span class="kw">virtual double</span> <span class="fn">differential</span>(<span class="tp">double</span> x, <span class="tp">double</span> h = <span class="nm">0.0001</span>)   <span class="kw">const</span>;
+    <span class="kw">virtual double</span> <span class="fn">findMin</span>(<span class="tp">double</span> a, <span class="tp">double</span> b) <span class="kw">const</span>;
+    <span class="kw">virtual double</span> <span class="fn">findMax</span>(<span class="tp">double</span> a, <span class="tp">double</span> b) <span class="kw">const</span>;
+    <span class="kw">virtual</span> ~<span class="fn">Function</span>() = <span class="kw">default</span>;
+};</code></pre>
+
+    <pre><div class="code-label">function/Parabola.h — производный класс</div><code><span class="kw">class</span> <span class="tp">Parabola</span> : <span class="kw">public</span> <span class="tp">Function</span> {
+<span class="kw">private</span>:
+    <span class="tp">double</span> a, b, c;  <span class="cm">// коэффициенты ax² + bx + c</span>
+<span class="kw">public</span>:
+    <span class="fn">Parabola</span>(<span class="tp">double</span> a, <span class="tp">double</span> b, <span class="tp">double</span> c) : a(a), b(b), c(c) {}
+
+    <span class="cm">// Достаточно переопределить только эти два метода</span>
+    <span class="tp">double</span> <span class="fn">calculate</span>(<span class="tp">double</span> x) <span class="kw">const override</span> { <span class="kw">return</span> a*x*x + b*x + c; }
+    <span class="kw">void</span>   <span class="fn">print</span>(<span class="tp">double</span> x)    <span class="kw">const override</span>;
+
+    <span class="cm">// integrate(), differential(), findMin(), findMax() — унаследованы!</span>
+};</code></pre>
+
+    <h2>Иерархия шахматных фигур</h2>
+
+    <div class="tree">
+<span class="abstract">Figure</span>  <span class="cm">(базовый)</span><br>
+├── <span class="leaf">King</span>    <span class="cm">← Король</span><br>
+├── <span class="leaf">Queen</span>   <span class="cm">← Ферзь</span><br>
+├── <span class="leaf">Rook</span>    <span class="cm">← Ладья</span><br>
+├── <span class="leaf">Bishop</span>  <span class="cm">← Слон</span><br>
+├── <span class="leaf">Knight</span>  <span class="cm">← Конь</span><br>
+└── <span class="leaf">Pawn</span>    <span class="cm">← Пешка</span><br>
+    </div>
+
+    <pre><div class="code-label">chess/figures.h</div><code><span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">protected</span>:
+    <span class="tp">Color</span>     color;    <span class="cm">// WHITE / BLACK</span>
+    <span class="tp">PieceType</span> type;
+    <span class="kw">bool</span>      hasMoved; <span class="cm">// для рокировки и взятия на проходе</span>
+<span class="kw">public</span>:
+    <span class="kw">virtual char</span> <span class="fn">getSymbol</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual</span> std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="fn">getPseudoMoves</span>(
+        <span class="tp">int</span> r, <span class="tp">int</span> c, <span class="kw">const</span> <span class="tp">Table</span>&amp; t) <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="kw">virtual</span> ~<span class="fn">Figure</span>() = <span class="kw">default</span>;
+    <span class="tp">Color</span> <span class="fn">getColor</span>() <span class="kw">const</span> { <span class="kw">return</span> color; }
+};
+
+<span class="kw">class</span> <span class="tp">King</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="fn">King</span>(<span class="tp">Color</span> c) { color = c; type = <span class="tp">PieceType</span>::King; }
+    <span class="kw">char</span> <span class="fn">getSymbol</span>() <span class="kw">const override</span> { <span class="kw">return</span> <span class="st">'K'</span>; }
+    std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="fn">getPseudoMoves</span>(<span class="tp">int</span>, <span class="tp">int</span>, <span class="kw">const</span> <span class="tp">Table</span>&amp;) <span class="kw">const override</span>;
+};</code></pre>
+
+    <h2>Вызов конструктора базового класса</h2>
+    <p>Производный класс должен инициализировать базовый класс через его конструктор:</p>
+
+    <pre><div class="code-label">Вызов конструктора базового класса</div><code><span class="kw">class</span> <span class="tp">Animal</span> {
+<span class="kw">protected</span>:
+    std::<span class="tp">string</span> name;
+<span class="kw">public</span>:
+    <span class="fn">Animal</span>(<span class="kw">const</span> std::<span class="tp">string</span>&amp; n) : name(n) {}
+};
+
+<span class="kw">class</span> <span class="tp">Dog</span> : <span class="kw">public</span> <span class="tp">Animal</span> {
+<span class="kw">private</span>:
+    <span class="tp">int</span> age;
+<span class="kw">public</span>:
+    <span class="cm">// Сначала вызываем конструктор Animal, потом инициализируем age</span>
+    <span class="fn">Dog</span>(<span class="kw">const</span> std::<span class="tp">string</span>&amp; n, <span class="tp">int</span> a) : <span class="fn">Animal</span>(n), age(a) {}
+};</code></pre>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz03">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">6 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 1</span>
+        <p>Что означает <code>class Dog : public Animal</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Dog содержит Animal как поле</label>
+          <label><input type="radio" name="q1" value="b"/> Dog наследует Animal — публичный интерфейс Animal остаётся публичным в Dog</label>
+          <label><input type="radio" name="q1" value="c"/> Dog и Animal — это одно и то же</label>
+          <label><input type="radio" name="q1" value="d"/> Animal наследует Dog</label>
+        </div>
+        <div class="explanation">Публичное наследование (<code>: public Base</code>) — самый распространённый вид. Оно означает отношение "является": Dog является Animal. Публичные и protected члены Animal остаются с теми же правами доступа в Dog.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 2</span>
+        <p>К каким полям базового класса имеет доступ производный класс?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Только к public</label>
+          <label><input type="radio" name="q2" value="b"/> Только к private</label>
+          <label><input type="radio" name="q2" value="c"/> К public и protected, но не к private</label>
+          <label><input type="radio" name="q2" value="d"/> Ко всем полям</label>
+        </div>
+        <div class="explanation">Производный класс имеет доступ к <code>public</code> и <code>protected</code> членам базового. <code>private</code> члены скрыты даже от наследников — это важная часть инкапсуляции.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 3</span>
+        <p>Почему в классе <code>Function</code> метод <code>integrate()</code> не является чисто виртуальным, хотя <code>calculate()</code> — чисто виртуальный?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Это ошибка дизайна</label>
+          <label><input type="radio" name="q3" value="b"/> integrate() слишком сложный для переопределения</label>
+          <label><input type="radio" name="q3" value="c"/> Стандарт не позволяет</label>
+          <label><input type="radio" name="q3" value="d"/> integrate() реализован через calculate() — базовая реализация годится для всех наследников</label>
+        </div>
+        <div class="explanation">Это паттерн <em>Template Method</em>: базовый класс предоставляет алгоритм (метод трапеций), который внутри вызывает <code>calculate()</code>. Наследники определяют только <code>calculate()</code>, а интегрирование работает автоматически.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 4</span>
+        <p>Как вызвать конструктор базового класса из производного?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Через список инициализации: <code>Derived(...) : Base(...) {}</code></label>
+          <label><input type="radio" name="q4" value="b"/> Вызвать <code>Base()</code> в теле конструктора производного</label>
+          <label><input type="radio" name="q4" value="c"/> Компилятор делает это автоматически всегда</label>
+          <label><input type="radio" name="q4" value="d"/> Конструктор базового класса нельзя вызвать явно</label>
+        </div>
+        <div class="explanation">Конструктор базового класса вызывается из списка инициализации производного конструктора. Если не вызвать явно, компилятор вызовет конструктор по умолчанию базового — и если его нет, будет ошибка компиляции.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 5</span>
+        <p>В иерархии геометрических фигур <code>Circle : public Figure</code>. Что произойдёт при вызове <code>f.calc_area()</code> через указатель <code>Figure* f = new Circle(...)</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Вызовется calc_area() из Figure — пустая реализация</label>
+          <label><input type="radio" name="q5" value="b"/> Вызовется calc_area() из Circle — π*r² (это полиморфизм)</label>
+          <label><input type="radio" name="q5" value="c"/> Ошибка компиляции</label>
+          <label><input type="radio" name="q5" value="d"/> Ошибка выполнения</label>
+        </div>
+        <div class="explanation">Виртуальные функции (virtual) разрешаются <em>динамически</em> — в runtime по реальному типу объекта, а не по типу указателя. Это и есть полиморфизм. О нём подробнее — в следующей теме.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 6</span>
+        <p>Какие из следующих утверждений о ключевом слове <code>override</code> верны?</p>
+        <div class="options">
+          <label><input type="radio" name="q6" value="a"/> Обязательно для всех виртуальных функций</label>
+          <label><input type="radio" name="q6" value="b"/> Это синоним virtual</label>
+          <label><input type="radio" name="q6" value="c"/> Необязательно, но помогает компилятору поймать ошибки: если базовой функции нет — ошибка</label>
+          <label><input type="radio" name="q6" value="d"/> Запрещает дальнейшее наследование</label>
+        </div>
+        <div class="explanation"><code>override</code> — необязательный, но полезный спецификатор (C++11). Если написать <code>void foo() override</code>, а в базовом классе нет virtual <code>foo()</code> с такой же сигнатурой — ошибка компиляции. Это защищает от опечаток.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="02_constructors.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">02. Конструкторы и деструкторы</span>
+      </a>
+      <a href="04_polymorphism.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">04. Полиморфизм</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

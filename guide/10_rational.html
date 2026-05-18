@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>10. Рациональные числа — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html" class="active"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Рациональные числа</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 10 — Проект</div>
+    <h1>Рациональные числа</h1>
+    <p class="subtitle">Полноценный класс-пример: НОД, инварианты, проверка переполнения, решение квадратного уравнения.</p>
+
+    <div class="callout info">
+      <div class="callout-title">Файлы</div>
+      <code>class_Rational/rational.h</code>, <code>rational.cpp</code>, <code>main_rational.cpp</code>
+    </div>
+
+    <h2>Что такое рациональное число</h2>
+    <p>Рациональное число — дробь вида <em>p/q</em>, где p (числитель) и q (знаменатель) — целые числа, q ≠ 0. Класс <code>Rational</code> представляет дробь точно, без потери точности (в отличие от <code>double</code>).</p>
+
+    <h2>Инварианты класса</h2>
+    <p>Инварианты — условия, которые всегда верны для корректного объекта:</p>
+    <ul>
+      <li><code>den &gt; 0</code> — знаменатель всегда положительный</li>
+      <li>Дробь всегда сокращена (НОД(num, den) == 1)</li>
+    </ul>
+
+    <pre><div class="code-label">class_Rational/rational.cpp — поддержание инвариантов</div><code><span class="tp">Rational</span>::<span class="fn">Rational</span>(<span class="tp">long long</span> n, <span class="tp">long long</span> d) {
+    <span class="kw">if</span> (d == <span class="nm">0</span>)
+        <span class="kw">throw</span> std::<span class="tp">invalid_argument</span>(<span class="st">"Denominator cannot be zero"</span>);
+
+    <span class="cm">// Инвариант 1: den > 0 — переносим знак в числитель</span>
+    <span class="kw">if</span> (d &lt; <span class="nm">0</span>) { n = -n; d = -d; }
+
+    num = n;
+    den = d;
+    <span class="fn">simplify</span>();  <span class="cm">// Инвариант 2: сокращение через НОД</span>
+}
+
+<span class="cm">// Алгоритм Евклида для НОД</span>
+<span class="kw">void</span> <span class="tp">Rational</span>::<span class="fn">simplify</span>() {
+    <span class="tp">long long</span> g = <span class="fn">gcd</span>(std::<span class="fn">abs</span>(num), den);
+    num /= g;
+    den /= g;
+}
+
+<span class="cm">// Вычисление НОД (Greatest Common Divisor)</span>
+<span class="tp">long long</span> <span class="fn">gcd</span>(<span class="tp">long long</span> a, <span class="tp">long long</span> b) {
+    <span class="kw">while</span> (b != <span class="nm">0</span>) {
+        <span class="tp">long long</span> t = b;
+        b = a % b;
+        a = t;
+    }
+    <span class="kw">return</span> a;
+}</code></pre>
+
+    <h2>Проверка переполнения</h2>
+    <p>Арифметика с дробями легко вызывает переполнение <code>long long</code>. Класс проверяет это заранее:</p>
+
+    <pre><div class="code-label">class_Rational/rational.cpp — защита от переполнения</div><code><span class="cm">// Проверяем: a + b вызовет переполнение?</span>
+<span class="kw">static bool</span> <span class="fn">will_add_overflow</span>(<span class="tp">long long</span> a, <span class="tp">long long</span> b) {
+    <span class="kw">if</span> (b &gt; <span class="nm">0</span> &amp;&amp; a &gt; std::<span class="tp">numeric_limits</span>&lt;<span class="tp">long long</span>&gt;::<span class="fn">max</span>() - b) <span class="kw">return true</span>;
+    <span class="kw">if</span> (b &lt; <span class="nm">0</span> &amp;&amp; a &lt; std::<span class="tp">numeric_limits</span>&lt;<span class="tp">long long</span>&gt;::<span class="fn">min</span>() - b) <span class="kw">return true</span>;
+    <span class="kw">return false</span>;
+}
+
+<span class="cm">// Проверяем: a * b вызовет переполнение?</span>
+<span class="kw">static bool</span> <span class="fn">will_mul_overflow</span>(<span class="tp">long long</span> a, <span class="tp">long long</span> b) {
+    <span class="kw">if</span> (a == <span class="nm">0</span> || b == <span class="nm">0</span>) <span class="kw">return false</span>;
+    <span class="tp">long long</span> result = a * b;
+    <span class="kw">return</span> (result / a != b);  <span class="cm">// проверяем через обратное деление</span>
+}
+
+<span class="cm">// Использование в operator+=</span>
+<span class="tp">Rational</span>&amp; <span class="tp">Rational</span>::<span class="kw">operator</span>+=(<span class="kw">const</span> <span class="tp">Rational</span>&amp; r) {
+    <span class="kw">if</span> (<span class="fn">will_mul_overflow</span>(num, r.den) ||
+        <span class="fn">will_mul_overflow</span>(r.num, den)  ||
+        <span class="fn">will_add_overflow</span>(num * r.den, r.num * den))
+        <span class="kw">throw</span> std::<span class="tp">overflow_error</span>(<span class="st">"Overflow in operator+="</span>);
+    <span class="cm">// ... безопасная операция ...</span>
+}</code></pre>
+
+    <h2>Применение: решение квадратного уравнения</h2>
+    <p>В <code>main_rational.cpp</code> класс Rational используется для точного решения квадратных уравнений с рациональными коэффициентами:</p>
+
+    <pre><div class="code-label">class_Rational/main_rational.cpp</div><code><span class="cm">// Решаем ax² + bx + c = 0</span>
+<span class="kw">void</span> <span class="fn">solveQuadratic</span>(<span class="tp">Rational</span> a, <span class="tp">Rational</span> b, <span class="tp">Rational</span> c) {
+    <span class="cm">// Дискриминант: D = b² - 4ac</span>
+    <span class="tp">Rational</span> D = b * b - <span class="tp">Rational</span>(<span class="nm">4</span>) * a * c;
+
+    <span class="kw">if</span> ((<span class="tp">double</span>)D &lt; <span class="nm">0</span>) {
+        std::cout &lt;&lt; <span class="st">"Корней нет\n"</span>;
+        <span class="kw">return</span>;
+    }
+
+    <span class="cm">// Если D — точный квадрат рационального числа</span>
+    <span class="tp">double</span> sqrtD = std::<span class="fn">sqrt</span>((<span class="tp">double</span>)D);
+    <span class="tp">Rational</span> two_a = <span class="tp">Rational</span>(<span class="nm">2</span>) * a;
+
+    <span class="cm">// x = (-b ± √D) / (2a)</span>
+    std::cout &lt;&lt; <span class="st">"x1 = "</span> &lt;&lt; (-b + <span class="tp">Rational</span>((<span class="tp">long long</span>)sqrtD)) / two_a &lt;&lt; <span class="st">"\n"</span>;
+    std::cout &lt;&lt; <span class="st">"x2 = "</span> &lt;&lt; (-b - <span class="tp">Rational</span>((<span class="tp">long long</span>)sqrtD)) / two_a &lt;&lt; <span class="st">"\n"</span>;
+}</code></pre>
+
+    <h2>Все перегруженные операторы</h2>
+    <table>
+      <tr><th>Оператор</th><th>Тип</th><th>Описание</th></tr>
+      <tr><td><code>+=, -=, *=, /=</code></td><td>Метод</td><td>Арифметика с проверкой переполнения</td></tr>
+      <tr><td><code>+, -, *, /</code></td><td>Метод (через +=)</td><td>Бинарная арифметика</td></tr>
+      <tr><td><code>==, !=, &lt;, &gt;, &lt;=, &gt;=</code></td><td>Метод</td><td>Сравнение дробей</td></tr>
+      <tr><td><code>-</code> (унарный)</td><td>Метод</td><td>Смена знака: <code>-r</code></td></tr>
+      <tr><td><code>operator int()</code></td><td>Оператор приведения</td><td>Неявное в int</td></tr>
+      <tr><td><code>explicit operator double()</code></td><td>Оператор приведения</td><td>Явное в double</td></tr>
+      <tr><td><code>&lt;&lt;, &gt;&gt;</code></td><td>Friend-функция</td><td>Ввод/вывод потока</td></tr>
+    </table>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz10">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 1</span>
+        <p>Зачем в конструкторе <code>Rational(n, d)</code> при <code>d &lt; 0</code> выполняется <code>n = -n; d = -d;</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Для скорости вычислений</label>
+          <label><input type="radio" name="q1" value="b"/> Для поддержания инварианта: знаменатель всегда положителен. Знак хранится в числителе</label>
+          <label><input type="radio" name="q1" value="c"/> Стандарт запрещает отрицательные знаменатели</label>
+          <label><input type="radio" name="q1" value="d"/> Чтобы упростить вывод</label>
+        </div>
+        <div class="explanation">Инвариант класса: <code>den &gt; 0</code>. При <code>Rational(-1, -2)</code>: оба отрицательны, в итоге <code>1/2</code>. При <code>Rational(1, -2)</code>: знак переходит в числитель, получаем <code>-1/2</code>. Это упрощает сравнение и вычисления.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 2</span>
+        <p>Зачем после каждой операции вызывается <code>simplify()</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Для отладки</label>
+          <label><input type="radio" name="q2" value="b"/> Требование математики</label>
+          <label><input type="radio" name="q2" value="c"/> Поддержание инварианта: дробь всегда в несократимом виде. Это упрощает сравнение (1/2 == 2/4) и предотвращает переполнение</label>
+          <label><input type="radio" name="q2" value="d"/> Для красивого вывода</label>
+        </div>
+        <div class="explanation">Если не сокращать, числа быстро растут. Например, складывая дроби 50 раз подряд, числитель и знаменатель могут переполниться. Сокращение через НОД поддерживает числа маленькими и упрощает сравнение.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 3</span>
+        <p>Зачем <code>operator double()</code> помечен как <code>explicit</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Предотвращает неявное преобразование, которое может быть неожиданным и вызвать потерю точности</label>
+          <label><input type="radio" name="q3" value="b"/> explicit делает преобразование быстрее</label>
+          <label><input type="radio" name="q3" value="c"/> Без explicit оператор не скомпилируется</label>
+          <label><input type="radio" name="q3" value="d"/> explicit нужен только для конструкторов</label>
+        </div>
+        <div class="explanation">Без explicit: <code>Rational r(1,3); double d = r;</code> — скомпилируется незаметно. С explicit: нужно явно написать <code>double d = (double)r;</code> или <code>static_cast&lt;double&gt;(r)</code>. Это документирует намерение и предупреждает о потере точности.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 4</span>
+        <p>Почему числитель и знаменатель хранятся как <code>long long</code>, а не <code>int</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> long long точнее</label>
+          <label><input type="radio" name="q4" value="b"/> int не поддерживает отрицательные числа</label>
+          <label><input type="radio" name="q4" value="c"/> Стандарт требует long long для дробей</label>
+          <label><input type="radio" name="q4" value="d"/> При умножении числитель·знаменатель может превысить INT_MAX (~2млрд). long long даёт диапазон ~9·10¹⁸</label>
+        </div>
+        <div class="explanation">При сложении <code>a/b + c/d = (a*d + c*b)/(b*d)</code>. Если a, b, c, d ~ INT_MAX, то a*d вызовет переполнение int. long long даёт 64 бита вместо 32, что значительно расширяет безопасный диапазон.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 5</span>
+        <p>В чём преимущество класса Rational перед типом double для решения уравнений?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Rational быстрее</label>
+          <label><input type="radio" name="q5" value="b"/> Rational хранит числа точно — нет ошибок округления. 1/3 + 2/3 == 1 всегда, а не 0.9999...</label>
+          <label><input type="radio" name="q5" value="c"/> Rational занимает меньше памяти</label>
+          <label><input type="radio" name="q5" value="d"/> double не поддерживает дроби</label>
+        </div>
+        <div class="explanation">double — число с плавающей точкой, хранит только приближение. <code>1.0/3.0 * 3.0 != 1.0</code> из-за ошибок округления. Rational хранит числитель и знаменатель целыми числами — <code>Rational(1,3) * 3 == 1</code> точно.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="09_graphs.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">09. Графы и алгоритмы</span>
+      </a>
+      <a href="11_datetime.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">11. Дата и время</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

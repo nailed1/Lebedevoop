@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>04. Полиморфизм — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html" class="active"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Полиморфизм</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 04</div>
+    <h1>Полиморфизм</h1>
+    <p class="subtitle">Один интерфейс — множество реализаций. Как один вызов работает по-разному для разных типов объектов.</p>
+
+    <h2>Что такое полиморфизм</h2>
+    <div class="def-box">
+      <div class="def-term">Полиморфизм</div>
+      <p>Способность объектов разных классов реагировать на один и тот же вызов метода по-разному. Дословно: «много форм» (от греч. poly + morphe).</p>
+    </div>
+
+    <p>В C++ полиморфизм бывает нескольких видов:</p>
+    <ul>
+      <li><strong>Динамический (runtime)</strong> — виртуальные функции. Выбор реализации происходит во время выполнения.</li>
+      <li><strong>Статический (compile-time)</strong> — шаблоны и перегрузка функций. Выбор происходит при компиляции.</li>
+    </ul>
+
+    <h2>Виртуальные функции и vtable</h2>
+    <p>Когда функция помечена <code>virtual</code>, компилятор создаёт таблицу виртуальных функций (vtable). Каждый объект содержит скрытый указатель на vtable своего реального класса.</p>
+
+    <pre><div class="code-label">Как работает vtable</div><code><span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="kw">virtual double</span> <span class="fn">calc_area</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+};
+
+<span class="kw">class</span> <span class="tp">Circle</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="tp">double</span> <span class="fn">calc_area</span>() <span class="kw">const override</span> { <span class="kw">return</span> M_PI * r * r; }
+};
+
+<span class="kw">class</span> <span class="tp">Triangle</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="tp">double</span> <span class="fn">calc_area</span>() <span class="kw">const override</span> { <span class="cm">/* формула Герона */</span> }
+};
+
+<span class="cm">// Полиморфный вызов — тип выбирается в runtime!</span>
+<span class="tp">Figure</span>* f1 = <span class="kw">new</span> <span class="tp">Circle</span>(...);
+<span class="tp">Figure</span>* f2 = <span class="kw">new</span> <span class="tp">Triangle</span>(...);
+
+f1-&gt;<span class="fn">calc_area</span>();  <span class="cm">// → вызов Circle::calc_area()</span>
+f2-&gt;<span class="fn">calc_area</span>();  <span class="cm">// → вызов Triangle::calc_area()</span>
+
+<span class="cm">// Массив фигур — один цикл для разных типов!</span>
+std::<span class="tp">vector</span>&lt;<span class="tp">Figure</span>*&gt; shapes = { f1, f2, <span class="kw">new</span> <span class="tp">Circle</span>(...) };
+<span class="kw">for</span> (<span class="kw">auto</span>* s : shapes)
+    std::cout &lt;&lt; s-&gt;<span class="fn">calc_area</span>() &lt;&lt; std::endl;</code></pre>
+
+    <h2>Абстрактные классы и чисто виртуальные функции</h2>
+    <p>Чисто виртуальная функция (<code>= 0</code>) не имеет реализации в базовом классе. Класс с хотя бы одной такой функцией — <em>абстрактный</em>: нельзя создать его объект напрямую.</p>
+
+    <pre><div class="code-label">Абстрактный класс</div><code><span class="kw">class</span> <span class="tp">Function</span> {
+<span class="kw">public</span>:
+    <span class="kw">virtual double</span> <span class="fn">calculate</span>(<span class="tp">double</span> x) <span class="kw">const</span> = <span class="nm">0</span>; <span class="cm">// чисто виртуальная</span>
+    <span class="kw">virtual void</span>   <span class="fn">print</span>(<span class="tp">double</span> x)    <span class="kw">const</span> = <span class="nm">0</span>; <span class="cm">// чисто виртуальная</span>
+
+    <span class="cm">// Реализация через calculate() — полиморфный алгоритм</span>
+    <span class="tp">double</span> <span class="fn">integrate</span>(<span class="tp">double</span> a, <span class="tp">double</span> b, <span class="tp">int</span> n = <span class="nm">1000</span>) <span class="kw">const</span> {
+        <span class="tp">double</span> h = (b - a) / n, sum = <span class="nm">0</span>;
+        <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; n; i++)
+            sum += (<span class="fn">calculate</span>(a + i*h) + <span class="fn">calculate</span>(a + (i+<span class="nm">1</span>)*h)) * h / <span class="nm">2</span>;
+        <span class="kw">return</span> sum;
+    }
+};
+
+<span class="cm">// Function f;  // ОШИБКА — нельзя создать объект абстрактного класса</span>
+<span class="tp">Parabola</span> p(<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>);  <span class="cm">// OK</span>
+p.<span class="fn">integrate</span>(<span class="nm">0</span>, <span class="nm">1</span>);   <span class="cm">// Вызовет Parabola::calculate() внутри!</span></code></pre>
+
+    <h2>Виртуальный деструктор — обязательно!</h2>
+    <p>Если удалять объект через указатель на базовый класс, нужен виртуальный деструктор. Иначе вызовется только деструктор базового класса, а деструктор производного — нет. Утечка памяти!</p>
+
+    <pre><div class="code-label">Виртуальный деструктор</div><code><span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> ~<span class="fn">Figure</span>() = <span class="kw">default</span>;  <span class="cm">// ← ОБЯЗАТЕЛЬНО если есть virtual</span>
+};
+
+<span class="kw">class</span> <span class="tp">Circle</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+    <span class="tp">double</span>* data; <span class="cm">// динамическая память</span>
+<span class="kw">public</span>:
+    ~<span class="fn">Circle</span>() { <span class="kw">delete</span>[] data; }
+};
+
+<span class="tp">Figure</span>* f = <span class="kw">new</span> <span class="tp">Circle</span>(...);
+<span class="kw">delete</span> f;  <span class="cm">// Без virtual ~Figure() — вызовется только ~Figure()!</span>
+           <span class="cm">// С virtual ~Figure() — вызовется ~Circle(), потом ~Figure()</span></code></pre>
+
+    <div class="callout danger">
+      <div class="callout-title">Правило</div>
+      Если класс имеет хотя бы одну виртуальную функцию — деструктор тоже должен быть виртуальным. Все три класса из репозитория — <code>Figure</code>, <code>Function</code>, <code>Figure</code> (шахматы) — следуют этому правилу.
+    </div>
+
+    <h2>Полиморфизм в действии: геометрические фигуры</h2>
+    <p>Посмотри как используется полиморфизм в <code>geometrical_figures/main.cpp</code>:</p>
+
+    <pre><div class="code-label">geometrical_figures/main.cpp</div><code><span class="cm">// Единый вектор для хранения разных фигур</span>
+std::<span class="tp">vector</span>&lt;<span class="tp">Figure</span>*&gt; figures;
+figures.<span class="fn">push_back</span>(<span class="kw">new</span> <span class="tp">Circle</span>&lt;<span class="tp">double</span>&gt;({<span class="nm">0</span>,<span class="nm">0</span>}, <span class="nm">5.0</span>));
+figures.<span class="fn">push_back</span>(<span class="kw">new</span> <span class="tp">Triangle</span>&lt;<span class="tp">double</span>&gt;({<span class="nm">0</span>,<span class="nm">0</span>}, {<span class="nm">3</span>,<span class="nm">0</span>}, {<span class="nm">0</span>,<span class="nm">4</span>}));
+figures.<span class="fn">push_back</span>(<span class="kw">new</span> <span class="tp">Rectangle</span>&lt;<span class="tp">double</span>&gt;({<span class="nm">0</span>,<span class="nm">0</span>}, {<span class="nm">4</span>,<span class="nm">3</span>}));
+
+<span class="cm">// Один цикл — разные реализации calc_area()</span>
+<span class="kw">double</span> total = <span class="nm">0</span>;
+<span class="kw">for</span> (<span class="kw">auto</span>* fig : figures) {
+    std::cout &lt;&lt; <span class="st">"Площадь: "</span> &lt;&lt; fig-&gt;<span class="fn">calc_area</span>() &lt;&lt; <span class="st">"\n"</span>;
+    total += fig-&gt;<span class="fn">calc_area</span>();
+}
+std::cout &lt;&lt; <span class="st">"Итого: "</span> &lt;&lt; total &lt;&lt; <span class="st">"\n"</span>;
+
+<span class="cm">// Освобождение памяти</span>
+<span class="kw">for</span> (<span class="kw">auto</span>* fig : figures) <span class="kw">delete</span> fig;</code></pre>
+
+    <h2>Полиморфизм в шахматах</h2>
+    <p>Каждая шахматная фигура переопределяет <code>getPseudoMoves()</code> — набор возможных ходов. Код игры работает со всеми фигурами через базовый указатель:</p>
+
+    <pre><div class="code-label">chess/table.cpp — полиморфный перебор ходов</div><code><span class="cm">// cells хранит unique_ptr<Figure> — умные указатели</span>
+std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="tp">Table</span>::<span class="fn">getValidMoves</span>(<span class="tp">int</span> r, <span class="tp">int</span> c) <span class="kw">const</span> {
+    <span class="kw">auto</span>* fig = cells[r][c].figure.<span class="fn">get</span>();
+    <span class="kw">if</span> (!fig) <span class="kw">return</span> {};
+
+    <span class="cm">// Полиморфный вызов — у каждой фигуры своя реализация!</span>
+    <span class="kw">auto</span> pseudo = fig-&gt;<span class="fn">getPseudoMoves</span>(r, c, *<span class="kw">this</span>);
+
+    <span class="cm">// Фильтруем — убираем ходы, оставляющие короля под шахом</span>
+    std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; valid;
+    <span class="kw">for</span> (<span class="kw">auto</span>&amp; pos : pseudo) {
+        <span class="tp">Table</span> copy = *<span class="kw">this</span>;
+        copy.<span class="fn">makeMove</span>(r, c, pos.row, pos.col);
+        <span class="kw">if</span> (!copy.<span class="fn">isInCheck</span>(fig-&gt;<span class="fn">getColor</span>()))
+            valid.<span class="fn">push_back</span>(pos);
+    }
+    <span class="kw">return</span> valid;
+}</code></pre>
+
+    <h2>Статический vs. динамический полиморфизм</h2>
+    <table>
+      <tr><th>Характеристика</th><th>Динамический (virtual)</th><th>Статический (templates)</th></tr>
+      <tr><td>Момент разрешения</td><td>Runtime</td><td>Compile-time</td></tr>
+      <tr><td>Накладные расходы</td><td>Небольшие (vtable lookup)</td><td>Нет</td></tr>
+      <tr><td>Гибкость</td><td>Высокая (разные объекты)</td><td>Высокая (разные типы)</td></tr>
+      <tr><td>Пример в репозитории</td><td>Figure, Function, Figure(chess)</td><td>Point&lt;T&gt;, Circle&lt;T&gt;, LineList&lt;T&gt;</td></tr>
+    </table>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz04">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">6 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 1</span>
+        <p>Что такое vtable (таблица виртуальных функций)?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Таблица всех функций класса</label>
+          <label><input type="radio" name="q1" value="b"/> Список аргументов виртуальной функции</label>
+          <label><input type="radio" name="q1" value="c"/> Таблица указателей на реализации виртуальных функций, которая позволяет выбирать нужную реализацию в runtime</label>
+          <label><input type="radio" name="q1" value="d"/> Список всех объектов класса</label>
+        </div>
+        <div class="explanation">Компилятор создаёт vtable для каждого класса с виртуальными функциями. Каждый объект хранит скрытый указатель (vptr) на vtable своего реального класса. При вызове виртуальной функции используется этот указатель для нахождения нужной реализации.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 2</span>
+        <p>Можно ли создать объект абстрактного класса?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Нет — ошибка компиляции, если класс содержит хотя бы одну чисто виртуальную функцию</label>
+          <label><input type="radio" name="q2" value="b"/> Да, но только через указатель</label>
+          <label><input type="radio" name="q2" value="c"/> Да, но только через ссылку</label>
+          <label><input type="radio" name="q2" value="d"/> Нет — ошибка только в runtime</label>
+        </div>
+        <div class="explanation">Абстрактный класс (с чисто виртуальными функциями) нельзя инстанцировать напрямую. Компилятор отвергает <code>Figure f;</code>. Но можно иметь указатель или ссылку: <code>Figure* f = new Circle(...);</code></div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 3</span>
+        <p>Почему виртуальный деструктор обязателен для базового класса с виртуальными методами?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Иначе производные классы не скомпилируются</label>
+          <label><input type="radio" name="q3" value="b"/> Это требование стандарта C++</label>
+          <label><input type="radio" name="q3" value="c"/> Иначе нельзя вызвать деструктор производного класса напрямую</label>
+          <label><input type="radio" name="q3" value="d"/> Без него delete через указатель на базовый класс вызовет только деструктор базового, а не производного — утечка памяти</label>
+        </div>
+        <div class="explanation">Без virtual деструктора: <code>Figure* f = new Circle; delete f;</code> вызовет только ~Figure(), а ~Circle() — нет. Если Circle выделял память, она утечёт. Виртуальный деструктор обеспечивает правильную цепочку вызовов.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 4</span>
+        <p>Что происходит, если производный класс НЕ переопределяет чисто виртуальную функцию?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Вызывается версия из базового класса</label>
+          <label><input type="radio" name="q4" value="b"/> Производный класс тоже становится абстрактным — его нельзя инстанцировать</label>
+          <label><input type="radio" name="q4" value="c"/> Программа упадёт в runtime</label>
+          <label><input type="radio" name="q4" value="d"/> Ошибка только при вызове этой функции</label>
+        </div>
+        <div class="explanation">Если хотя бы одна чисто виртуальная функция не переопределена, производный класс тоже считается абстрактным. Его нельзя инстанцировать, пока все pure virtual методы не будут реализованы.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 5</span>
+        <p>Чем отличается вызов <code>obj.method()</code> от <code>ptr->method()</code> для виртуальных функций?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> Никакой разницы нет</label>
+          <label><input type="radio" name="q5" value="b"/> Первый — статический, второй — тоже статический</label>
+          <label><input type="radio" name="q5" value="c"/> Оба динамические, но полиморфизм работает только через указатели/ссылки на базовый класс</label>
+          <label><input type="radio" name="q5" value="d"/> Через объект виртуальная диспетчеризация не происходит</label>
+        </div>
+        <div class="explanation">Полиморфизм (динамическая диспетчеризация) работает через указатели или ссылки на базовый класс: <code>Figure* f = new Circle; f->calc_area();</code>. Если использовать объект напрямую, компилятор знает точный тип и вызовет нужный метод статически.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 6</span>
+        <p>В каком файле репозитория демонстрируется паттерн "Template Method" — базовый класс определяет алгоритм, вызывая абстрактные методы?</p>
+        <div class="options">
+          <label><input type="radio" name="q6" value="a"/> function/Function.h — integrate() вызывает чисто виртуальный calculate()</label>
+          <label><input type="radio" name="q6" value="b"/> class_array/array.h</label>
+          <label><input type="radio" name="q6" value="c"/> class_Rational/rational.h</label>
+          <label><input type="radio" name="q6" value="d"/> graph/graph.h</label>
+        </div>
+        <div class="explanation">В <code>Function</code>: метод <code>integrate()</code> реализован в базовом классе и использует метод <code>calculate()</code>, который является чисто виртуальным. Наследники (Parabola, Hiperbola и т.д.) определяют только <code>calculate()</code>, а интегрирование они получают бесплатно.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <a href="03_inheritance.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">03. Наследование</span>
+      </a>
+      <a href="05_templates.html" class="next">
+        <span class="nav-dir">Вперёд →</span>
+        <span class="nav-title">05. Шаблоны (Templates)</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

@@ -3,25 +3,16 @@
 #include <sstream>
 #include <iostream>
 
-// РЕАЛИЗАЦИЯ NODE
+// Node
 
-Node::Node(const std::string& aname) : name(aname) {}
+Node::Node(const std::string& name) : name(name) {}
 
-const std::string& Node::getName() const {
-    return name;
-}
+const std::string& Node::getName() const { return name; }
 
-int Node::getNameAsInt() const {
-    return std::stoi(name);
-}
+int Node::getNameAsInt() const { return std::stoi(name); }
 
-neighbour_iterator Node::nb_begin() const {
-    return neighbours.begin();
-}
-
-neighbour_iterator Node::nb_end() const {
-    return neighbours.end();
-}
+neighbour_iterator Node::nb_begin() const { return neighbours.begin(); }
+neighbour_iterator Node::nb_end()   const { return neighbours.end();   }
 
 void Node::addNeighbour(Node* neighbour, int weight) {
     neighbours[neighbour] = weight;
@@ -31,131 +22,101 @@ void Node::removeNeighbour(Node* neighbour) {
     neighbours.erase(neighbour);
 }
 
-int Node::getWeight(Node* from) const {
-    auto it = neighbours.find(from);
-    if (it != neighbours.end()) {
-        return it->second;
-    }
-    return 0;
+int Node::getWeight(Node* neighbour) const {
+    auto it = neighbours.find(neighbour);
+    return it != neighbours.end() ? it->second : 0;
 }
 
-// РЕАЛИЗАЦИЯ GRAPH
+// Graph
 
-Graph::Graph() {}
-
-// Конструктор из файла
-Graph::Graph(const char* file_name) {
-    std::ifstream file(file_name);
-    if (!file.is_open()) {
-        std::cerr << "Ошибка: не удалось открыть файл " << file_name << std::endl;
+Graph::Graph(const char* filename) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "Ошибка: не удалось открыть файл " << filename << "\n";
         return;
     }
-    
+
     std::string line;
     bool headerSkipped = false;
-    
+
     while (std::getline(file, line)) {
-        // Пропускаем заголовок
         if (!headerSkipped) {
-            if (line.find("Source") != std::string::npos) {
-                headerSkipped = true;
-                continue;
-            }
             headerSkipped = true;
+            if (line.find("Source") != std::string::npos)
+                continue;
         }
-        
-        // Пропускаем пустые строки
+
         if (line.empty()) continue;
-        
+
         std::istringstream iss(line);
-        int source, target;
-        if (iss >> source >> target) {
-            // Создаем или получаем узлы
-            Node* sourceNode = getNodeByIndex(source);
-            if (!sourceNode) {
-                sourceNode = new Node(std::to_string(source));
-                addNode(sourceNode);
-            }
-            
-            Node* targetNode = getNodeByIndex(target);
-            if (!targetNode) {
-                targetNode = new Node(std::to_string(target));
-                addNode(targetNode);
-            }
-            
-            // Добавляем ребро (ненаправленное)
-            addEdge(sourceNode, targetNode, 1);
+        int src, tgt;
+        if (!(iss >> src >> tgt)) continue;
+
+        const std::string srcName = std::to_string(src);
+        const std::string tgtName = std::to_string(tgt);
+
+        Node* srcNode = getNode(srcName);
+        if (!srcNode) {
+            srcNode = new Node(srcName);
+            addNode(srcNode);
         }
+
+        Node* tgtNode = getNode(tgtName);
+        if (!tgtNode) {
+            tgtNode = new Node(tgtName);
+            addNode(tgtNode);
+        }
+
+        addEdge(srcNode, tgtNode);
     }
-    
-    file.close();
 }
 
-Graph::~Graph() {
-    clear();
-}
+Graph::~Graph() { clear(); }
 
 void Graph::addNode(Node* node) {
+    if (!node) return;
     nodes.insert(node);
-    if (node) {
-        int index = node->getNameAsInt();
-        nodesByIndex[index] = node;
-    }
+    nodeByName[node->getName()] = node;
 }
 
 void Graph::removeNode(Node* node) {
-    if (node) {
-        int index = node->getNameAsInt();
-        nodesByIndex.erase(index);
-    }
+    if (!node) return;
+    nodeByName.erase(node->getName());
     nodes.erase(node);
-    // Удаляем ссылки на этот узел у всех остальных
-    for (Node* other : nodes) {
+    for (Node* other : nodes)
         other->removeNeighbour(node);
-    }
 }
 
-void Graph::addEdge(Node* begin, Node* end, int weight) {
-    if (!begin || !end) return;
-    if (nodes.find(begin) == nodes.end()) return;
-    if (nodes.find(end) == nodes.end()) return;
-    
-    // Ненаправленное ребро
-    begin->addNeighbour(end, weight);
-    end->addNeighbour(begin, weight);
+void Graph::addEdge(Node* from, Node* to, int weight) {
+    if (!from || !to) return;
+    if (!nodes.count(from) || !nodes.count(to)) return;
+    from->addNeighbour(to, weight);
+    to->addNeighbour(from, weight);
 }
 
-void Graph::removeEdge(Node* begin, Node* end) {
-    if (begin && end) {
-        begin->removeNeighbour(end);
-        end->removeNeighbour(begin);
-    }
+void Graph::removeEdge(Node* from, Node* to) {
+    if (!from || !to) return;
+    from->removeNeighbour(to);
+    to->removeNeighbour(from);
 }
 
-Node* Graph::getNodeByIndex(int index) {
-    auto it = nodesByIndex.find(index);
-    if (it != nodesByIndex.end()) {
-        return it->second;
-    }
-    return nullptr;
+Node* Graph::getNode(const std::string& name) const {
+    auto it = nodeByName.find(name);
+    return it != nodeByName.end() ? it->second : nullptr;
 }
 
-node_iterator Graph::begin() const {
-    return nodes.begin();
+Node* Graph::getNodeByIndex(int index) const {
+    return getNode(std::to_string(index));
 }
 
-node_iterator Graph::end() const {
-    return nodes.end();
-}
+node_iterator Graph::begin() const { return nodes.begin(); }
+node_iterator Graph::end()   const { return nodes.end();   }
 
-size_t Graph::size() const {
-    return nodes.size();
-}
+size_t Graph::size() const { return nodes.size(); }
 
 void Graph::clear() {
-    for (Node* n : nodes) {
+    for (Node* n : nodes)
         delete n;
-    }
     nodes.clear();
-    nodesByIndex.clear();
+    nodeByName.clear();
 }

@@ -5,13 +5,13 @@
 #include <set>
 
 class DFS {
-    const Graph& graph;
-    std::set<Node*> visited;
-    
-    bool connected(Node* begin, Node* end, int depth);
-    
+    [[maybe_unused]] const Graph& graph;
+
+    static bool search(Node* current, Node* end, std::set<Node*>& visited);
+
 public:
-    DFS(const Graph& agraph);
+    explicit DFS(const Graph& graph);
+
     bool connected(Node* begin, Node* end);
 };
 

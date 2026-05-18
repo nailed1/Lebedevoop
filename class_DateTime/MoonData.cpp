@@ -8,150 +8,175 @@
 
 using namespace std;
 
-// Определение формата файла по заголовку
 static bool detectFileType(ifstream& file) {
     string header;
     getline(file, header);
-    // Если в заголовке есть "T", значит есть колонка с температурой
     return header.find("T") != string::npos;
 }
 
-// Основная функция обработки
+// Парсит первое поле (ymd) из строки, возвращает -1 при ошибке
+static int parseYmd(const string& line) {
+    istringstream ss(line);
+    int ymd;
+    ss >> ymd;
+    return ss.fail() ? -1 : ymd;
+}
+
+// Бинарный поиск по файлу: возвращает смещение первой строки, где ymd >= targetYmd.
+// lo — начало данных (после заголовка), hi — размер файла.
+// Инвариант: lo всегда указывает на начало строки.
+static long findStartOfDate(ifstream& file, int targetYmd, long lo, long hi) {
+    while (lo < hi) {
+        long mid = lo + (hi - lo) / 2;
+        file.seekg(mid);
+
+        // Если не на границе строки — досчитываем текущую строку до конца
+        if (mid > lo) {
+            string dummy;
+            getline(file, dummy);
+        }
+
+        long lineStart = (long)file.tellg();
+
+        // Если вышли за верхнюю границу — сужаем правую часть
+        if (lineStart < 0 || lineStart >= hi) {
+            hi = mid;
+            continue;
+        }
+
+        string line;
+        if (!getline(file, line)) {
+            hi = mid;
+            break;
+        }
+
+        int ymd = parseYmd(line);
+
+        if (ymd >= 0 && ymd < targetYmd) {
+            lo = (long)file.tellg(); // строка меньше цели — ищем правее
+        } else {
+            hi = lineStart;          // строка >= цели — ищем левее (или это и есть граница)
+        }
+    }
+    return lo;
+}
+
 MoonResult processMoonData(const DateTime& target) {
     MoonResult result;
-    
-    // Формируем имя файла (безопасный способ)
+
     char filename[50];
     snprintf(filename, sizeof(filename), "Moon/moon%d.dat", target.getYear());
-    
+
     ifstream file(filename);
     if (!file.is_open()) {
         result.ok = false;
         return result;
     }
-    
+
     cout << "Opened file: " << filename << endl;
-    
+
     bool hasTColumn = detectFileType(file);
     cout << (hasTColumn ? "Full format" : "Short format") << endl;
-    
-    // Читаем все строки файла
+
+    long dataStart = (long)file.tellg();
+
+    file.seekg(0, ios::end);
+    long fileEnd = (long)file.tellg();
+
+    int targetYmd = target.getYear() * 10000 + target.getMonth() * 100 + target.getDay();
+
+    // O(log N) — находим начало нужной даты
+    long startPos = findStartOfDate(file, targetYmd, dataStart, fileEnd);
+    file.seekg(startPos);
+
     string line;
     int lineNum = 0;
-    bool foundTargetDate = false;
     double prevEl = -999.0;
-    double maxEl = -999.0;
-    
+    double maxEl  = -999.0;
+
+    // O(k) — читаем только строки нужного дня
     while (getline(file, line)) {
         lineNum++;
-        
+
         int ymd, hms;
         double r, el, az, fi, lg;
-        double t = 0; // возможно, не используется
-        
-        // Парсим строку
-        stringstream ss(line);
+        double t = 0;
+
+        istringstream ss(line);
         ss >> ymd >> hms;
-        
-        if (ss.fail()) {
-            cerr << "Warning: Cannot parse line " << lineNum << ": " << line << endl;
-            continue;
-        }
-        
-        if (hasTColumn) {
-            ss >> t;
-        }
-        
+        if (ss.fail()) continue;
+
+        if (ymd != targetYmd) break;
+
+        if (hasTColumn) ss >> t;
         ss >> r >> el >> az >> fi >> lg;
-        
-        if (ss.fail()) {
-            cerr << "Warning: Cannot parse data on line " << lineNum << endl;
-            continue;
+        if (ss.fail()) continue;
+
+        int year   = ymd / 10000;
+        int month  = (ymd / 100) % 100;
+        int day    = ymd % 100;
+        int hour   = hms / 10000;
+        int minute = (hms / 100) % 100;
+        int second = hms % 100;
+
+        DateTime dt(year, month, day, hour, minute, second);
+
+        if (el > maxEl) {
+            maxEl = el;
+            result.culminationTime = dt;
+            result.hasCulmination = true;
         }
-        
-        // Извлекаем дату
-        int year = ymd / 10000;
-        int month = (ymd / 100) % 100;
-        int day = ymd % 100;
-        
-        // Проверяем, та ли это дата
-        if (year == target.getYear() && month == target.getMonth() && day == target.getDay()) {
-            foundTargetDate = true;
-            
-            // Извлекаем время
-            int hour = hms / 10000;
-            int minute = (hms / 100) % 100;
-            int second = hms % 100;
-            
-            DateTime dt(year, month, day, hour, minute, second);
-            
-            // Проверяем кульминацию
-            if (el > maxEl) {
-                maxEl = el;
-                result.culminationTime = dt;
-                result.hasCulmination = true;
-            }
-            
-            // Проверяем восход
-            if (prevEl < 0 && el > 0 && prevEl != -999.0) {
-                result.riseTime = dt;
-                result.hasRise = true;
-            }
-            
-            // Проверяем заход
-            if (prevEl >= 0 && el < 0 && prevEl != -999.0) {
-                result.setTime = dt;
-                result.hasSet = true;
-            }
-            
-            prevEl = el;
-        } 
-        else if (foundTargetDate) {
-            // Мы уже прошли целевую дату - можно выходить
-            break;
+
+        if (prevEl < 0 && el >= 0 && prevEl != -999.0) {
+            result.riseTime = dt;
+            result.hasRise = true;
         }
+
+        if (prevEl >= 0 && el < 0 && prevEl != -999.0) {
+            result.setTime = dt;
+            result.hasSet = true;
+        }
+
+        prevEl = el;
     }
-    
+
     file.close();
-    cout << "Processed " << lineNum << " lines" << endl;
-    
+    cout << "Processed " << lineNum << " lines for target date" << endl;
+
     return result;
 }
 
 void printResult(const DateTime& target, const MoonResult& result) {
     cout << "\n=== Moon Data for " << target << " ===" << endl;
-    
+
     if (!result.ok) {
         cout << "Error: Cannot open data file" << endl;
         return;
     }
-    
-    // Вывод времени восхода
+
     cout << "Rise: ";
     if (result.hasRise) {
-        cout << setfill('0') << setw(2) << result.riseTime.getHour() << ":"
+        cout << setfill('0') << setw(2) << result.riseTime.getHour()   << ":"
              << setfill('0') << setw(2) << result.riseTime.getMinute() << ":"
              << setfill('0') << setw(2) << result.riseTime.getSecond();
     } else {
         cout << "---";
     }
     cout << endl;
-    
-    // Вывод времени кульминации
+
     cout << "Culmination: ";
     if (result.hasCulmination) {
-        cout << setfill('0') << setw(2) << result.culminationTime.getHour() << ":"
+        cout << setfill('0') << setw(2) << result.culminationTime.getHour()   << ":"
              << setfill('0') << setw(2) << result.culminationTime.getMinute() << ":"
              << setfill('0') << setw(2) << result.culminationTime.getSecond();
     } else {
         cout << "---";
     }
     cout << endl;
-    
-    // Вывод времени захода
+
     cout << "Set: ";
     if (result.hasSet) {
-        cout << setfill('0') << setw(2) << result.setTime.getHour() << ":"
+        cout << setfill('0') << setw(2) << result.setTime.getHour()   << ":"
              << setfill('0') << setw(2) << result.setTime.getMinute() << ":"
              << setfill('0') << setw(2) << result.setTime.getSecond();
     } else {

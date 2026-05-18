@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ООП на C++ — Справочник</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>ООП на C++</h2>
+    <p>Справочник по курсу Лебедева</p>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html" class="active"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html"><span class="num">12</span> Игры: 4 в ряд и шахматы</a>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><span>Главная</span></span>
+  </div>
+  <div class="content">
+
+    <div class="hero">
+      <h1>ООП на C++</h1>
+      <p>Интерактивный справочник по объектно-ориентированному программированию на основе реального учебного репозитория</p>
+      <div class="stats">
+        <div class="stat"><div class="val">12</div><div class="lbl">Тем</div></div>
+        <div class="stat"><div class="val">9</div><div class="lbl">Проектов</div></div>
+        <div class="stat"><div class="val">60+</div><div class="lbl">Примеров кода</div></div>
+        <div class="stat"><div class="val">80+</div><div class="lbl">Тест-вопросов</div></div>
+      </div>
+    </div>
+
+    <h2>О чём этот справочник</h2>
+    <p>Этот справочник построен на реальном коде из репозитория курса ООП. Каждая тема разбирается на конкретных примерах — классах, которые ты сам писал или будешь писать. В конце каждой страницы есть тест для самопроверки.</p>
+
+    <div class="callout info">
+      <div class="callout-title">Как пользоваться</div>
+      Читай темы по порядку — каждая следующая опирается на предыдущую. Запускай примеры у себя, экспериментируй с кодом. После прочтения — пройди тест внизу страницы.
+    </div>
+
+    <h2>Темы курса</h2>
+
+    <div class="nav-section" style="padding:0 0 8px; font-size:0.7rem; letter-spacing:0.1em; color:var(--muted);">ОСНОВЫ ООП</div>
+    <div class="cards-grid">
+      <a href="01_classes.html" class="card">
+        <div class="card-num">Тема 01</div>
+        <h3>Классы и инкапсуляция</h3>
+        <p>Что такое класс, зачем нужны private/public/protected, геттеры и сеттеры.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-blue">class</span>
+          <span class="card-tag tag-blue">encapsulation</span>
+        </div>
+      </a>
+      <a href="02_constructors.html" class="card">
+        <div class="card-num">Тема 02</div>
+        <h3>Конструкторы и деструкторы</h3>
+        <p>Жизненный цикл объекта, конструктор по умолчанию, копирования, перемещения.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-blue">constructor</span>
+          <span class="card-tag tag-purple">destructor</span>
+        </div>
+      </a>
+      <a href="03_inheritance.html" class="card">
+        <div class="card-num">Тема 03</div>
+        <h3>Наследование</h3>
+        <p>Базовые и производные классы, иерархии, доступ к членам родителя.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-green">inheritance</span>
+          <span class="card-tag tag-green">base class</span>
+        </div>
+      </a>
+      <a href="04_polymorphism.html" class="card">
+        <div class="card-num">Тема 04</div>
+        <h3>Полиморфизм</h3>
+        <p>Виртуальные функции, абстрактные классы, override, таблица виртуальных функций.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-purple">virtual</span>
+          <span class="card-tag tag-purple">override</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-section" style="padding:16px 0 8px; font-size:0.7rem; letter-spacing:0.1em; color:var(--muted);">ПРОДВИНУТЫЕ ТЕМЫ</div>
+    <div class="cards-grid">
+      <a href="05_templates.html" class="card">
+        <div class="card-num">Тема 05</div>
+        <h3>Шаблоны (Templates)</h3>
+        <p>Обобщённое программирование, шаблоны классов и функций, специализация.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-yellow">template</span>
+          <span class="card-tag tag-yellow">generic</span>
+        </div>
+      </a>
+      <a href="06_operators.html" class="card">
+        <div class="card-num">Тема 06</div>
+        <h3>Перегрузка операторов</h3>
+        <p>+, -, *, /, ==, <<, >> и другие — на примере класса Rational.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-yellow">operator</span>
+          <span class="card-tag tag-blue">overload</span>
+        </div>
+      </a>
+      <a href="07_memory.html" class="card">
+        <div class="card-num">Тема 07</div>
+        <h3>Управление памятью</h3>
+        <p>new/delete, правило трёх, глубокое копирование, утечки памяти и RAII.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-green">memory</span>
+          <span class="card-tag tag-green">RAII</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-section" style="padding:16px 0 8px; font-size:0.7rem; letter-spacing:0.1em; color:var(--muted);">СТРУКТУРЫ ДАННЫХ И ПРОЕКТЫ</div>
+    <div class="cards-grid">
+      <a href="08_lists.html" class="card">
+        <div class="card-num">Тема 08</div>
+        <h3>Связные списки</h3>
+        <p>Односвязный и циклический список, шаблонная реализация LineList&lt;T&gt;.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-purple">linked list</span>
+          <span class="card-tag tag-yellow">template</span>
+        </div>
+      </a>
+      <a href="09_graphs.html" class="card">
+        <div class="card-num">Тема 09</div>
+        <h3>Графы: BFS, DFS, Дейкстра</h3>
+        <p>Граф на классах, обход в ширину и глубину, алгоритм кратчайшего пути.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-blue">graph</span>
+          <span class="card-tag tag-green">algorithms</span>
+        </div>
+      </a>
+      <a href="10_rational.html" class="card">
+        <div class="card-num">Тема 10</div>
+        <h3>Рациональные числа</h3>
+        <p>Полный пример ООП-класса: НОД, переполнение, решение квадратного уравнения.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-yellow">Rational</span>
+          <span class="card-tag tag-blue">math</span>
+        </div>
+      </a>
+      <a href="11_datetime.html" class="card">
+        <div class="card-num">Тема 11</div>
+        <h3>Дата и время</h3>
+        <p>DateTime класс, алгоритм Зеллера, формула Гаусса для Пасхи, лунный календарь.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-purple">DateTime</span>
+          <span class="card-tag tag-green">algorithms</span>
+        </div>
+      </a>
+      <a href="12_games.html" class="card">
+        <div class="card-num">Тема 12</div>
+        <h3>Игры: 4 в ряд и шахматы</h3>
+        <p>Практическое применение ООП: полиморфизм фигур, умные указатели, ИИ.</p>
+        <div class="card-tags">
+          <span class="card-tag tag-blue">chess</span>
+          <span class="card-tag tag-purple">AI</span>
+        </div>
+      </a>
+    </div>
+
+    <h2>Структура репозитория</h2>
+    <div class="tree">
+LebedevOopCpp/<br>
+├── <span class="node">class_Rational/</span>    <span class="cm">← Рациональные числа, перегрузка операторов</span><br>
+├── <span class="node">class_array/</span>        <span class="cm">← Динамический массив, управление памятью</span><br>
+├── <span class="node">class_list_array/</span>   <span class="cm">← Шаблонный связный список</span><br>
+├── <span class="node">class_DateTime/</span>     <span class="cm">← Дата/время, алгоритмы календаря</span><br>
+├── <span class="node">geometrical_figures/</span> <span class="cm">← Фигуры, наследование, полиморфизм, шаблоны</span><br>
+├── <span class="node">function/</span>           <span class="cm">← Иерархия математических функций</span><br>
+├── <span class="node">graph/</span>              <span class="cm">← Граф, BFS, DFS, Дейкстра</span><br>
+├── <span class="node">4raws/</span>              <span class="cm">← Игра "4 в ряд"</span><br>
+└── <span class="node">chess/</span>              <span class="cm">← Шахматы с ИИ (minimax)</span><br>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-title">Совет</div>
+      Начни с темы 01 и иди по порядку. Если тема покажется знакомой — прокрути вниз и пройди тест: возможно, найдёшь пробел в знаниях.
+    </div>
+
+    <div class="page-nav">
+      <a href="01_classes.html" class="next">
+        <span class="nav-dir">Начать →</span>
+        <span class="nav-title">01. Классы и инкапсуляция</span>
+      </a>
+    </div>
+
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

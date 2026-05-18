@@ -8,15 +8,13 @@
 
 class BFS {
     const Graph& graph;
-    
+
 public:
-    BFS(const Graph& agraph);
+    explicit BFS(const Graph& graph);
+
     bool connected(Node* begin, Node* end);
-    
-    // Поиск всех узлов в компоненте связности
-    std::set<Node*> findConnectedComponent(Node* start);
-    
-    // Поиск всех компонент связности в графе
+
+    std::set<Node*>              findConnectedComponent(Node* start);
     std::vector<std::set<Node*>> findAllConnectedComponents();
 };
 

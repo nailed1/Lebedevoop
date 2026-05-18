@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>12. Игры — ООП C++</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>ООП на C++</h2><p>Справочник по курсу Лебедева</p></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Навигация</div>
+    <a href="index.html"><span class="num">00</span> Главная</a>
+    <div class="nav-section">Основы</div>
+    <a href="01_classes.html"><span class="num">01</span> Классы и инкапсуляция</a>
+    <a href="02_constructors.html"><span class="num">02</span> Конструкторы и деструкторы</a>
+    <a href="03_inheritance.html"><span class="num">03</span> Наследование</a>
+    <a href="04_polymorphism.html"><span class="num">04</span> Полиморфизм</a>
+    <div class="nav-section">Продвинутые темы</div>
+    <a href="05_templates.html"><span class="num">05</span> Шаблоны (Templates)</a>
+    <a href="06_operators.html"><span class="num">06</span> Перегрузка операторов</a>
+    <a href="07_memory.html"><span class="num">07</span> Управление памятью</a>
+    <div class="nav-section">Структуры данных</div>
+    <a href="08_lists.html"><span class="num">08</span> Связные списки</a>
+    <a href="09_graphs.html"><span class="num">09</span> Графы и алгоритмы</a>
+    <div class="nav-section">Проекты</div>
+    <a href="10_rational.html"><span class="num">10</span> Рациональные числа</a>
+    <a href="11_datetime.html"><span class="num">11</span> Дата и время</a>
+    <a href="12_games.html" class="active"><span class="num">12</span> Игры</a>
+  </nav>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <span class="breadcrumb"><a href="index.html" style="color:var(--muted);text-decoration:none">Главная</a> / <span>Игры</span></span>
+  </div>
+  <div class="content">
+
+    <div class="tag">Тема 12 — Проекты</div>
+    <h1>Игры: 4 в ряд и шахматы</h1>
+    <p class="subtitle">ООП в действии: полиморфизм фигур, умные указатели, алгоритм minimax.</p>
+
+    <h2>Часть 1: Игра "4 в ряд"</h2>
+
+    <div class="callout info">
+      <div class="callout-title">Файлы</div>
+      <code>4raws/pole.h</code>, <code>pole.cpp</code>, <code>main.cpp</code>
+    </div>
+
+    <h3>Класс pole — игровое поле</h3>
+
+    <pre><div class="code-label">4raws/pole.h</div><code><span class="kw">enum class</span> <span class="tp">Cell</span> { Empty, Red, Yellow };
+
+<span class="kw">class</span> <span class="tp">pole</span> {
+<span class="kw">private</span>:
+    <span class="kw">static const int</span> WIDTH  = <span class="nm">7</span>;
+    <span class="kw">static const int</span> HEIGHT = <span class="nm">6</span>;
+
+    <span class="tp">Cell</span> cells[WIDTH][HEIGHT];
+    <span class="kw">bool</span> isRedTurn;    <span class="cm">// чья очередь ходить</span>
+    <span class="tp">Cell</span> winner;       <span class="cm">// Empty если нет победителя</span>
+
+    <span class="kw">void</span> <span class="fn">checkWinner</span>();     <span class="cm">// внутренняя проверка после хода</span>
+
+<span class="kw">public</span>:
+    <span class="fn">pole</span>();
+
+    <span class="kw">bool</span> <span class="fn">makeTurn</span>(<span class="tp">int</span> column);    <span class="cm">// возвращает false если столбец полный</span>
+    <span class="kw">bool</span> <span class="fn">isWon</span>(<span class="kw">bool</span> red) <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">isDraw</span>() <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">isOver</span>() <span class="kw">const</span>;
+
+    <span class="tp">Cell</span> <span class="fn">getCell</span>(<span class="tp">int</span> x, <span class="tp">int</span> y) <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">isRedsTurn</span>() <span class="kw">const</span> { <span class="kw">return</span> isRedTurn; }
+};</code></pre>
+
+    <h3>Алгоритм определения победителя</h3>
+
+    <pre><div class="code-label">4raws/pole.cpp — checkWinner()</div><code><span class="kw">void</span> <span class="tp">pole</span>::<span class="fn">checkWinner</span>() {
+    <span class="cm">// 4 направления: право, вниз, диагональ /, диагональ \</span>
+    <span class="kw">const int</span> di[] = { <span class="nm">1</span>,  <span class="nm">0</span>,  <span class="nm">1</span>,  <span class="nm">1</span> };
+    <span class="kw">const int</span> dj[] = { <span class="nm">0</span>,  <span class="nm">1</span>, -<span class="nm">1</span>,  <span class="nm">1</span> };
+
+    <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; WIDTH; i++) {
+        <span class="kw">for</span> (<span class="tp">int</span> j = <span class="nm">0</span>; j &lt; HEIGHT; j++) {
+            <span class="kw">if</span> (cells[i][j] == <span class="tp">Cell</span>::Empty) <span class="kw">continue</span>;
+            <span class="tp">Cell</span> color = cells[i][j];
+
+            <span class="kw">for</span> (<span class="tp">int</span> d = <span class="nm">0</span>; d &lt; <span class="nm">4</span>; d++) {
+                <span class="tp">int</span> count = <span class="nm">1</span>;
+                <span class="kw">for</span> (<span class="tp">int</span> k = <span class="nm">1</span>; k &lt; <span class="nm">4</span>; k++) {
+                    <span class="tp">int</span> ni = i + di[d]*k;
+                    <span class="tp">int</span> nj = j + dj[d]*k;
+                    <span class="kw">if</span> (ni &lt; <span class="nm">0</span> || ni &gt;= WIDTH || nj &lt; <span class="nm">0</span> || nj &gt;= HEIGHT)
+                        <span class="kw">break</span>;
+                    <span class="kw">if</span> (cells[ni][nj] == color) count++;
+                    <span class="kw">else break</span>;
+                }
+                <span class="kw">if</span> (count == <span class="nm">4</span>) { winner = color; <span class="kw">return</span>; }
+            }
+        }
+    }
+}</code></pre>
+
+    <h2>Часть 2: Шахматы с ИИ</h2>
+
+    <div class="callout info">
+      <div class="callout-title">Файлы</div>
+      <code>chess/figures.h</code>, <code>table.h</code>, <code>table.cpp</code>, <code>ai.h</code>, <code>main.cpp</code>
+    </div>
+
+    <h3>Иерархия фигур</h3>
+
+    <pre><div class="code-label">chess/figures.h — полиморфные фигуры</div><code><span class="kw">enum class</span> <span class="tp">Color</span>     { White, Black };
+<span class="kw">enum class</span> <span class="tp">PieceType</span> { King, Queen, Rook, Bishop, Knight, Pawn };
+
+<span class="kw">struct</span> <span class="tp">Position</span> { <span class="tp">int</span> row, col; };
+
+<span class="kw">class</span> <span class="tp">Figure</span> {
+<span class="kw">protected</span>:
+    <span class="tp">Color</span>     color;
+    <span class="tp">PieceType</span> type;
+    <span class="kw">bool</span>      hasMoved = <span class="kw">false</span>;
+
+<span class="kw">public</span>:
+    <span class="kw">virtual</span> ~<span class="fn">Figure</span>() = <span class="kw">default</span>;
+
+    <span class="cm">// Полиморфный метод: каждая фигура знает свои ходы</span>
+    <span class="kw">virtual</span> std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="fn">getPseudoMoves</span>(
+        <span class="tp">int</span> r, <span class="tp">int</span> c, <span class="kw">const</span> <span class="tp">Table</span>&amp; t) <span class="kw">const</span> = <span class="nm">0</span>;
+
+    <span class="cm">// Для глубокого копирования при симуляции ходов ИИ</span>
+    <span class="kw">virtual</span> std::<span class="tp">unique_ptr</span>&lt;<span class="tp">Figure</span>&gt; <span class="fn">clone</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+
+    <span class="kw">virtual char</span> <span class="fn">getSymbol</span>() <span class="kw">const</span> = <span class="nm">0</span>;
+    <span class="tp">Color</span>     <span class="fn">getColor</span>()    <span class="kw">const</span> { <span class="kw">return</span> color; }
+    <span class="tp">PieceType</span> <span class="fn">getType</span>()     <span class="kw">const</span> { <span class="kw">return</span> type; }
+    <span class="kw">bool</span>      <span class="fn">getHasMoved</span>() <span class="kw">const</span> { <span class="kw">return</span> hasMoved; }
+};
+
+<span class="cm">// Реализация конкретной фигуры</span>
+<span class="kw">class</span> <span class="tp">Knight</span> : <span class="kw">public</span> <span class="tp">Figure</span> {
+<span class="kw">public</span>:
+    <span class="fn">Knight</span>(<span class="tp">Color</span> c) { color = c; type = <span class="tp">PieceType</span>::Knight; }
+    <span class="kw">char</span> <span class="fn">getSymbol</span>() <span class="kw">const override</span> { <span class="kw">return</span> color==<span class="tp">Color</span>::White ? <span class="st">'N'</span> : <span class="st">'n'</span>; }
+
+    std::<span class="tp">unique_ptr</span>&lt;<span class="tp">Figure</span>&gt; <span class="fn">clone</span>() <span class="kw">const override</span> {
+        <span class="kw">return</span> std::<span class="fn">make_unique</span>&lt;<span class="tp">Knight</span>&gt;(*<span class="kw">this</span>);  <span class="cm">// копирование</span>
+    }
+
+    std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="fn">getPseudoMoves</span>(<span class="tp">int</span> r, <span class="tp">int</span> c, <span class="kw">const</span> <span class="tp">Table</span>&amp; t) <span class="kw">const override</span> {
+        std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; moves;
+        <span class="kw">const int</span> dr[] = {-<span class="nm">2</span>,-<span class="nm">2</span>,-<span class="nm">1</span>,-<span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">2</span>};
+        <span class="kw">const int</span> dc[] = {-<span class="nm">1</span>, <span class="nm">1</span>,-<span class="nm">2</span>, <span class="nm">2</span>,-<span class="nm">2</span>, <span class="nm">2</span>,-<span class="nm">1</span>, <span class="nm">1</span>};
+        <span class="kw">for</span> (<span class="tp">int</span> i = <span class="nm">0</span>; i &lt; <span class="nm">8</span>; i++) {
+            <span class="tp">int</span> nr = r + dr[i], nc = c + dc[i];
+            <span class="kw">if</span> (nr&gt;=<span class="nm">0</span> &amp;&amp; nr&lt;<span class="nm">8</span> &amp;&amp; nc&gt;=<span class="nm">0</span> &amp;&amp; nc&lt;<span class="nm">8</span>)
+                <span class="kw">if</span> (!t.<span class="fn">hasFriendly</span>(nr, nc, color))
+                    moves.<span class="fn">push_back</span>({nr, nc});
+        }
+        <span class="kw">return</span> moves;
+    }
+};</code></pre>
+
+    <h3>Игровой стол и валидация ходов</h3>
+
+    <pre><div class="code-label">chess/table.h — Table</div><code><span class="kw">class</span> <span class="tp">Table</span> {
+<span class="kw">private</span>:
+    <span class="kw">struct</span> <span class="tp">Cell</span> {
+        std::<span class="tp">unique_ptr</span>&lt;<span class="tp">Figure</span>&gt; figure;  <span class="cm">// nullptr если клетка пуста</span>
+    };
+    <span class="tp">Cell</span> cells[<span class="nm">8</span>][<span class="nm">8</span>];
+    <span class="tp">Color</span> currentTurn;
+
+<span class="kw">public</span>:
+    <span class="fn">Table</span>();
+    <span class="fn">Table</span>(<span class="kw">const</span> <span class="tp">Table</span>&amp;);  <span class="cm">// глубокое копирование для ИИ</span>
+
+    <span class="cm">// Возвращает только легальные ходы (не оставляющие короля под шахом)</span>
+    std::<span class="tp">vector</span>&lt;<span class="tp">Position</span>&gt; <span class="fn">getValidMoves</span>(<span class="tp">int</span> r, <span class="tp">int</span> c) <span class="kw">const</span>;
+
+    <span class="kw">bool</span> <span class="fn">makeMove</span>(<span class="tp">int</span> fr, <span class="tp">int</span> fc, <span class="tp">int</span> tr, <span class="tp">int</span> tc,
+                  <span class="tp">PieceType</span> promo = <span class="tp">PieceType</span>::Queen);
+
+    <span class="kw">bool</span> <span class="fn">isInCheck</span>(<span class="tp">Color</span> c) <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">isCheckmate</span>(<span class="tp">Color</span> c) <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">isStalemate</span>(<span class="tp">Color</span> c) <span class="kw">const</span>;
+};</code></pre>
+
+    <h3>ИИ: алгоритм Minimax</h3>
+    <p>ИИ использует алгоритм minimax с альфа-бета отсечением — ищет лучший ход на несколько шагов вперёд:</p>
+
+    <pre><div class="code-label">chess/ai.h — Minimax</div><code><span class="kw">class</span> <span class="tp">AI</span> {
+<span class="kw">private</span>:
+    <span class="tp">int</span> depth;  <span class="cm">// глубина поиска</span>
+    <span class="tp">Color</span> myColor;
+
+    <span class="cm">// Оценка позиции: положительная = хорошо для белых</span>
+    <span class="tp">int</span> <span class="fn">evaluate</span>(<span class="kw">const</span> <span class="tp">Table</span>&amp; t) <span class="kw">const</span>;
+
+    <span class="cm">// Рекурсивный minimax с альфа-бета отсечением</span>
+    <span class="tp">int</span> <span class="fn">minimax</span>(<span class="tp">Table</span> t, <span class="tp">int</span> depth, <span class="tp">int</span> alpha, <span class="tp">int</span> beta, <span class="kw">bool</span> maximizing) <span class="kw">const</span>;
+
+<span class="kw">public</span>:
+    <span class="fn">AI</span>(<span class="tp">Color</span> c, <span class="tp">int</span> depth = <span class="nm">3</span>) : myColor(c), depth(depth) {}
+
+    <span class="cm">// Возвращает лучший ход</span>
+    std::<span class="tp">tuple</span>&lt;<span class="tp">int</span>,<span class="tp">int</span>,<span class="tp">int</span>,<span class="tp">int</span>&gt; <span class="fn">getBestMove</span>(<span class="kw">const</span> <span class="tp">Table</span>&amp; t) <span class="kw">const</span>;
+};
+
+<span class="tp">int</span> <span class="tp">AI</span>::<span class="fn">minimax</span>(<span class="tp">Table</span> t, <span class="tp">int</span> d, <span class="tp">int</span> alpha, <span class="tp">int</span> beta, <span class="kw">bool</span> maximizing) <span class="kw">const</span> {
+    <span class="kw">if</span> (d == <span class="nm">0</span> || t.<span class="fn">isCheckmate</span>(<span class="tp">Color</span>::White) || t.<span class="fn">isCheckmate</span>(<span class="tp">Color</span>::Black))
+        <span class="kw">return</span> <span class="fn">evaluate</span>(t);
+
+    <span class="kw">if</span> (maximizing) {
+        <span class="tp">int</span> maxVal = <span class="tp">INT_MIN</span>;
+        <span class="cm">// Перебираем все ходы белых</span>
+        <span class="kw">for</span> (<span class="kw">auto</span>&amp; [fr,fc,tr,tc] : t.<span class="fn">getAllMoves</span>(<span class="tp">Color</span>::White)) {
+            <span class="tp">Table</span> copy = t;
+            copy.<span class="fn">makeMove</span>(fr, fc, tr, tc);
+            maxVal = std::<span class="fn">max</span>(maxVal, <span class="fn">minimax</span>(copy, d-<span class="nm">1</span>, alpha, beta, <span class="kw">false</span>));
+            alpha = std::<span class="fn">max</span>(alpha, maxVal);
+            <span class="kw">if</span> (beta &lt;= alpha) <span class="kw">break</span>;  <span class="cm">// альфа-бета отсечение!</span>
+        }
+        <span class="kw">return</span> maxVal;
+    } <span class="kw">else</span> {
+        <span class="cm">// Аналогично для минимизирующего игрока...</span>
+    }
+}</code></pre>
+
+    <h2>Итоговый обзор ООП концепций в играх</h2>
+
+    <table>
+      <tr><th>Концепция</th><th>В "4 в ряд"</th><th>В шахматах</th></tr>
+      <tr><td>Инкапсуляция</td><td>cells[] скрыт, доступ через getCell()</td><td>cells[][] скрыт, getValidMoves()</td></tr>
+      <tr><td>Полиморфизм</td><td>-</td><td>getPseudoMoves() для 6 типов фигур</td></tr>
+      <tr><td>Наследование</td><td>-</td><td>Figure → King, Queen, Rook...</td></tr>
+      <tr><td>Умные указатели</td><td>-</td><td>unique_ptr&lt;Figure&gt;</td></tr>
+      <tr><td>Копирование объектов</td><td>-</td><td>Table(const Table&) для ИИ</td></tr>
+      <tr><td>enum class</td><td>Cell (Empty/Red/Yellow)</td><td>Color, PieceType</td></tr>
+      <tr><td>Алгоритм</td><td>Проверка 4 в ряд по 4 направлениям</td><td>Minimax с альфа-бета отсечением</td></tr>
+    </table>
+
+    <!-- QUIZ -->
+    <div class="quiz-block" id="quiz12">
+      <div class="quiz-header">
+        <h3>Тест для самопроверки</h3>
+        <span class="badge">5 вопросов</span>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 1</span>
+        <p>Зачем в классе <code>Figure</code> есть чисто виртуальный метод <code>clone()</code>?</p>
+        <div class="options">
+          <label><input type="radio" name="q1" value="a"/> Для отображения фигуры</label>
+          <label><input type="radio" name="q1" value="b"/> Для сравнения фигур</label>
+          <label><input type="radio" name="q1" value="c"/> Для глубокого копирования полиморфных объектов — unique_ptr нельзя скопировать, нужен виртуальный метод создания копии</label>
+          <label><input type="radio" name="q1" value="d"/> Для отмены хода</label>
+        </div>
+        <div class="explanation">При копировании Table (для ИИ-симуляции) нужно скопировать все Figure. Но Figure — абстрактный базовый класс, а у нас есть King, Queen и т.д. Виртуальный <code>clone()</code> в каждом подклассе создаёт правильный тип: <code>return make_unique&lt;King&gt;(*this)</code>.</div>
+      </div>
+
+      <div class="question" data-correct="a">
+        <span class="q-num">Вопрос 2</span>
+        <p>Почему в алгоритме проверки "4 в ряд" используется только 4 направления, а не 8?</p>
+        <div class="options">
+          <label><input type="radio" name="q2" value="a"/> Каждая линия из 4 считается от одного конца. Проверка в 4 направлениях (право, вниз, две диагонали) покрывает все случаи</label>
+          <label><input type="radio" name="q2" value="b"/> Оставшиеся 4 направления — это зеркало первых 4</label>
+          <label><input type="radio" name="q2" value="c"/> Алгоритм не полный</label>
+          <label><input type="radio" name="q2" value="d"/> Для экономии времени</label>
+        </div>
+        <div class="explanation">Если проверять "право" и "лево" — одну и ту же линию найдём дважды. Достаточно проверить каждую линию с одного конца: право (→), вниз (↓), диагональ ↗, диагональ ↘. Этого хватает для нахождения всех выигрышных линий.</div>
+      </div>
+
+      <div class="question" data-correct="d">
+        <span class="q-num">Вопрос 3</span>
+        <p>Зачем ИИ делает глубокую копию Table перед симуляцией хода?</p>
+        <div class="options">
+          <label><input type="radio" name="q3" value="a"/> Для ускорения поиска</label>
+          <label><input type="radio" name="q3" value="b"/> Стандарт требует</label>
+          <label><input type="radio" name="q3" value="c"/> Для сохранения истории ходов</label>
+          <label><input type="radio" name="q3" value="d"/> Симуляция не должна изменять реальную позицию. Каждый вызов minimax работает на своей копии доски</label>
+        </div>
+        <div class="explanation">Minimax перебирает миллионы вариантов, "делая" ходы и оценивая позицию. Если менять реальную доску, возвращаться назад (undo) было бы сложнее. Копирование доски проще и безопаснее.</div>
+      </div>
+
+      <div class="question" data-correct="b">
+        <span class="q-num">Вопрос 4</span>
+        <p>В чём смысл "альфа-бета отсечения" в minimax?</p>
+        <div class="options">
+          <label><input type="radio" name="q4" value="a"/> Ограничивает глубину поиска</label>
+          <label><input type="radio" name="q4" value="b"/> Отсекает ветви дерева, которые заведомо не улучшат результат — ускоряет поиск без потери качества</label>
+          <label><input type="radio" name="q4" value="c"/> Случайно убирает слабые ходы</label>
+          <label><input type="radio" name="q4" value="d"/> Ограничивает количество копий доски</label>
+        </div>
+        <div class="explanation">Альфа-бета: если мы уже нашли ход с оценкой X, и анализируем ветвь, где соперник может получить оценку &gt; X — эту ветвь незачем дальше исследовать. В худшем случае работает как чистый minimax, в лучшем — сокращает дерево поиска на порядки.</div>
+      </div>
+
+      <div class="question" data-correct="c">
+        <span class="q-num">Вопрос 5</span>
+        <p>Метод <code>getValidMoves()</code> отличается от <code>getPseudoMoves()</code>. В чём разница?</p>
+        <div class="options">
+          <label><input type="radio" name="q5" value="a"/> getValidMoves — для ИИ, getPseudoMoves — для игрока</label>
+          <label><input type="radio" name="q5" value="b"/> getValidMoves работает только для белых</label>
+          <label><input type="radio" name="q5" value="c"/> getPseudoMoves — все теоретически возможные ходы фигуры без учёта шаха. getValidMoves фильтрует их, оставляя только те, после которых свой король не под шахом</label>
+          <label><input type="radio" name="q5" value="d"/> Разницы нет, это синонимы</label>
+        </div>
+        <div class="explanation">getPseudoMoves (в каждом подклассе Figure) даёт все ходы по геометрии фигуры — без учёта шаха. getValidMoves (в Table) проверяет каждый ход: делает копию, выполняет ход, проверяет не оказался ли король под шахом. Только "проходящие" ходы возвращаются как valid.</div>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn btn-primary check-btn">Проверить ответы</button>
+        <button class="btn btn-secondary reset-btn">Сбросить</button>
+        <span class="score-display"></span>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-title">Ты прошёл весь справочник!</div>
+      Все 12 тем пройдены. Теперь ты видишь, как фундаментальные концепции ООП — инкапсуляция, наследование, полиморфизм, шаблоны, управление памятью — работают в реальных проектах. Возвращайся к темам, которые показались сложными, и перечитывай код в репозитории уже с новым пониманием.
+    </div>
+
+    <div class="page-nav">
+      <a href="11_datetime.html">
+        <span class="nav-dir">← Назад</span>
+        <span class="nav-title">11. Дата и время</span>
+      </a>
+      <a href="index.html" class="next">
+        <span class="nav-dir">↑ Вверх</span>
+        <span class="nav-title">На главную</span>
+      </a>
+    </div>
+  </div>
+</main>
+</div>
+<script src="js/quiz.js"></script>
+</body>
+</html>

@@ -1,12 +1,21 @@
 #include "dijkstra.h"
 #include <algorithm>
 
-// РЕАЛИЗАЦИЯ MarkedNode
+// MarkedNode
 
-MarkedNode::MarkedNode(Node* anode, int amark, Node* aprev)
-    : node(anode), mark(amark), prev(aprev) {}
+MarkedNode::MarkedNode(Node* node, int mark, Node* prev)
+    : node(node), mark(mark), prev(prev) {}
 
-// РЕАЛИЗАЦИЯ PriorityQueue
+// PriorityQueue (min по mark — меньшее значение извлекается первым)
+
+void PriorityQueue::push(Node* node, int mark, Node* prev) {
+    // Вставляем так, чтобы вектор оставался отсортирован по убыванию:
+    // минимальный mark окажется в конце и будет извлечён через pop_back.
+    auto it = nodes.begin();
+    while (it != nodes.end() && mark < it->mark)
+        ++it;
+    nodes.insert(it, MarkedNode(node, mark, prev));
+}
 
 MarkedNode PriorityQueue::pop() {
     MarkedNode mn = nodes.back();
@@ -14,72 +23,51 @@ MarkedNode PriorityQueue::pop() {
     return mn;
 }
 
-void PriorityQueue::push(Node* node, int mark, Node* prev) {
-    MarkedNode mn(node, mark, prev);
-    
-    // Вставляем в отсортированный вектор (от большего к меньшему)
-    std::vector<MarkedNode>::iterator it = nodes.begin();
-    while (it != nodes.end() && mark < it->mark) {
-        ++it;
-    }
-    
-    if (it == nodes.end()) {
-        nodes.push_back(mn);
-    } else {
-        nodes.insert(it, mn);
-    }
-}
+bool PriorityQueue::empty() const { return nodes.empty(); }
 
-bool PriorityQueue::empty() const {
-    return nodes.empty();
-}
-
-// РЕАЛИЗАЦИЯ Way
+// ── Way ───────────────────────────────────────────────────────────────────────
 
 Way::Way() : length(-1) {}
 
-// РЕАЛИЗАЦИЯ Dijkstra
+// ── Dijkstra ──────────────────────────────────────────────────────────────────
 
-Dijkstra::Dijkstra(const Graph& agraph) : graph(agraph) {}
+Dijkstra::Dijkstra(const Graph& graph) : graph(graph) {}
 
 Way Dijkstra::shortestWay(Node* begin, Node* end) {
-    PriorityQueue nodes;
-    nodes.push(begin, 0, 0);
+    PriorityQueue             queue;
     std::map<Node*, MarkedNode> visited;
-    
-    while (!nodes.empty()) {
-        MarkedNode next = nodes.pop();
+
+    queue.push(begin, 0, nullptr);
+
+    while (!queue.empty()) {
+        MarkedNode next = queue.pop();
+
+        // Узел уже обработан с меньшим расстоянием — пропускаем дубликат
+        if (visited.count(next.node)) continue;
+
         visited[next.node] = next;
-        
-        if (end == next.node) {
+
+        if (next.node == end)
             return unroll(visited, begin, end);
-        }
-        
-        for (neighbour_iterator it = next.node->nb_begin(); it != next.node->nb_end(); ++it) {
-            Node* neighbor = it->first;
-            int weight = it->second;
-            int newMark = next.mark + weight;
-            
-            if (visited.find(neighbor) == visited.end()) {
-                nodes.push(neighbor, newMark, next.node);
-            }
+
+        for (auto it = next.node->nb_begin(); it != next.node->nb_end(); ++it) {
+            if (!visited.count(it->first))
+                queue.push(it->first, next.mark + it->second, next.node);
         }
     }
-    
-    return Way();  // Пути нет
+
+    return Way(); // путь не найден
 }
 
-Way Dijkstra::unroll(std::map<Node*, MarkedNode> visited, Node* begin, Node* curr) {
+Way Dijkstra::unroll(const std::map<Node*, MarkedNode>& visited,
+                     Node* begin, Node* end) {
     Way way;
-    way.length = visited[curr].mark;
-    
-    while (curr != begin) {
+    way.length = visited.at(end).mark;
+
+    for (Node* curr = end; curr != begin; curr = visited.at(curr).prev)
         way.nodes.push_back(curr);
-        curr = visited[curr].prev;
-    }
-    
+
     way.nodes.push_back(begin);
     std::reverse(way.nodes.begin(), way.nodes.end());
-    
     return way;
 }
