@@ -1,4 +1,5 @@
 #include "BFS.h"
+#include <map>
 
 BFS::BFS(const Graph& graph) : graph(graph) {}
 
@@ -59,4 +60,44 @@ std::vector<std::set<Node*>> BFS::findAllConnectedComponents() {
     }
 
     return components;
+}
+
+static Graph* buildGraphFromComponent(const std::set<Node*>& component) {
+    Graph* g = new Graph();
+    std::map<Node*, Node*> nodeMap;
+
+    for (Node* node : component) {
+        Node* newNode = new Node(node->getName());
+        g->addNode(newNode);
+        nodeMap[node] = newNode;
+    }
+
+    for (Node* node : component) {
+        for (auto it = node->nb_begin(); it != node->nb_end(); ++it) {
+            Node* neighbour = it->first;
+            if (component.count(neighbour) && node->getName() < neighbour->getName())
+                g->addEdge(nodeMap[node], nodeMap[neighbour], it->second);
+        }
+    }
+
+    return g;
+}
+
+Graph* BFS::findConnectedComponentAsGraph(Node* start) {
+    return buildGraphFromComponent(findConnectedComponent(start));
+}
+
+std::vector<Graph*> BFS::findAllConnectedComponentGraphs() {
+    std::vector<Graph*> result;
+    std::set<Node*>     visited;
+
+    for (Node* node : graph) {
+        if (visited.count(node)) continue;
+
+        std::set<Node*> component = findConnectedComponent(node);
+        visited.insert(component.begin(), component.end());
+        result.push_back(buildGraphFromComponent(component));
+    }
+
+    return result;
 }

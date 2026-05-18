@@ -253,14 +253,16 @@ void task_findDisjointGraphs_testgraph() {
     }
     
     BFS bfs(graph);
-    std::vector<std::set<Node*>> components = bfs.findAllConnectedComponents();
-    
+    std::vector<Graph*> components = bfs.findAllConnectedComponentGraphs();
+
     printComponentsInfo(components);
-    
+
     // Сохраняем каждую компоненту в отдельный файл
     std::cout << "\n>>> Сохранение компонент в файлы..." << std::endl;
     saveAllComponents(components, "testgraph");
-    
+
+    for (Graph* g : components) delete g;
+
     std::cout << "\n>>> Задача 3 выполнена успешно!" << std::endl;
 }
 
@@ -279,14 +281,16 @@ void task_findDisjointGraphs_1000csv() {
     }
     
     BFS bfs(graph);
-    std::vector<std::set<Node*>> components = bfs.findAllConnectedComponents();
-    
+    std::vector<Graph*> components = bfs.findAllConnectedComponentGraphs();
+
     printComponentsInfo(components);
-    
+
     // Сохраняем каждую компоненту в отдельный файл
     std::cout << "\n>>> Сохранение компонент в файлы..." << std::endl;
     saveAllComponents(components, "graph1000");
-    
+
+    for (Graph* g : components) delete g;
+
     std::cout << "\n>>> Задача 4 выполнена успешно!" << std::endl;
 }
 
@@ -324,15 +328,20 @@ void task_checkConnectivity() {
     
     BFS bfs(graph);
     bool connected = bfs.connected(node1, node2);
-    
+
     std::cout << "\n>>> Результат:" << std::endl;
     if (connected) {
         std::cout << "Вершины " << v1 << " и " << v2 << " СВЯЗАНЫ" << std::endl;
         std::cout << "   (существует путь между ними)" << std::endl;
+
+        Graph* component = bfs.findConnectedComponentAsGraph(node1);
+        std::cout << "\nКомпонента связности (Graph):" << std::endl;
+        printGraphInfo(*component);
+        delete component;
     } else {
         std::cout << "Вершины " << v1 << " и " << v2 << " НЕ СВЯЗАНЫ" << std::endl;
         std::cout << "   (пути не существует)" << std::endl;
     }
-    
+
     std::cout << "\n>>> Задача 5 выполнена!" << std::endl;
 }
