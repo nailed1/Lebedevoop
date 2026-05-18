@@ -25,11 +25,11 @@ MarkedNode PriorityQueue::pop() {
 
 bool PriorityQueue::empty() const { return nodes.empty(); }
 
-// ── Way ───────────────────────────────────────────────────────────────────────
+// Way
 
 Way::Way() : length(-1) {}
 
-// ── Dijkstra ──────────────────────────────────────────────────────────────────
+// Dijkstra
 
 Dijkstra::Dijkstra(const Graph& graph) : graph(graph) {}
 
