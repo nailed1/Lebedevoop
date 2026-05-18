@@ -8,6 +8,36 @@
 
 using namespace std;
 
+static int partition(std::vector<DateTime>& dates, int low, int high) {
+    DateTime pivot = dates[high];
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (dates[j] <= pivot) {
+            i++;
+            DateTime tmp = dates[i];
+            dates[i] = dates[j];
+            dates[j] = tmp;
+        }
+    }
+    DateTime tmp = dates[i + 1];
+    dates[i + 1] = dates[high];
+    dates[high] = tmp;
+    return i + 1;
+}
+
+static void quickSort(std::vector<DateTime>& dates, int low, int high) {
+    if (low < high) {
+        int pi = partition(dates, low, high);
+        quickSort(dates, low, pi - 1);
+        quickSort(dates, pi + 1, high);
+    }
+}
+
+void sortDates(std::vector<DateTime>& dates) {
+    if (dates.size() > 1)
+        quickSort(dates, 0, (int)dates.size() - 1);
+}
+
 static bool detectFileType(ifstream& file) {
     string header;
     getline(file, header);

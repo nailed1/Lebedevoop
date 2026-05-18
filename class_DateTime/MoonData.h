@@ -3,6 +3,7 @@
 
 #include "DateTime.h"
 #include <string>
+#include <vector>
 
 struct MoonResult {
     bool ok = true;
@@ -18,5 +19,7 @@ struct MoonResult {
 
 MoonResult processMoonData(const DateTime& target);
 void printResult(const DateTime& target, const MoonResult& result);
+
+void sortDates(std::vector<DateTime>& dates);
 
 #endif // MOON_DATA_H
