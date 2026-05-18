@@ -1,6 +1,9 @@
 # moon data
 class_DateTime/Moon/
 
+#guide
+./guide/
+
 # Visual Studio Code
 .vscode/
 *.code-workspace
@@ -71,3 +74,4 @@ desktop.ini
 *.gch
 *.pch
 "/git/" 
+.claude/
