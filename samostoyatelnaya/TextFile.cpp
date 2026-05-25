@@ -5,9 +5,9 @@
 #include <algorithm>
 #include <stdexcept>
 
-// -------------------------------------------------------
+// 
 // Конструкторы
-// -------------------------------------------------------
+// 
 
 template <class T>
 TextFile<T>::TextFile() {}
@@ -34,9 +34,9 @@ TextFile<T>::TextFile(const char* dir, const char* mask) {
     pclose(pipe);
 }
 
-// -------------------------------------------------------
+// 
 // Сохранение
-// -------------------------------------------------------
+// 
 
 template <class T>
 void TextFile<T>::save(const char* filePath) const {
@@ -50,9 +50,9 @@ void TextFile<T>::save() const {
     if (!path_.empty()) save(path_.c_str());
 }
 
-// -------------------------------------------------------
+// 
 // Методы работы с данными
-// -------------------------------------------------------
+// 
 
 template <class T>
 void TextFile<T>::appendFrom(const TextFile<T>& other) {
@@ -111,9 +111,9 @@ double TextFile<T>::sumField(int fieldIdx) const {
 template <class T>
 size_t TextFile<T>::size() const { return data.size(); }
 
-// -------------------------------------------------------
+// 
 // Операторы
-// -------------------------------------------------------
+// 
 
 template <class T>
 TextFile<T>& TextFile<T>::operator+=(const TextFile<T>& other) {
@@ -157,9 +157,9 @@ TextFile<T> TextFile<T>::operator-(const TextFile<T>& other) const {
     return res;
 }
 
-// -------------------------------------------------------
+// 
 // Приватные методы
-// -------------------------------------------------------
+// 
 
 template <class T>
 void TextFile<T>::loadFile(const char* filePath) {
@@ -179,7 +179,7 @@ void TextFile<T>::appendFile(const char* filePath) {
         if (!line.empty()) data.push_back(T(line.c_str()));
 }
 
-// -------------------------------------------------------
+// 
 // Явная инстанциация
-// -------------------------------------------------------
+// 
 template class TextFile<FormatRowFile>;
