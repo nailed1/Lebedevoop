@@ -1,0 +1,214 @@
+@startuml chess_class_diagram
+skinparam classAttributeIconSize 0
+skinparam classFontStyle Bold
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #333333
+
+title Chess Engine — Class Diagram
+
+' ─────────────────────────────────────────
+' Enumerations
+' ─────────────────────────────────────────
+enum Color {
+    White
+    Black
+    None
+}
+
+enum PieceType {
+    King
+    Queen
+    Rook
+    Bishop
+    Knight
+    Pawn
+    None
+}
+
+' ─────────────────────────────────────────
+' Figure hierarchy
+' ─────────────────────────────────────────
+abstract class Figure {
+    # color    : Color
+    # type     : PieceType
+    # hasMoved : bool
+    ..getters..
+    + getColor()    : Color
+    + getType()     : PieceType
+    + getHasMoved() : bool
+    + setHasMoved(v : bool) : void
+    ..pure virtual interface..
+    + {abstract} getSymbol()                             : char
+    + {abstract} clone()                                 : unique_ptr<Figure>
+    + {abstract} getMaterialValue()                      : int
+    + {abstract} getPositionalValue(row:int, col:int)    : int
+    + {abstract} getPseudoMoves(r:int, c:int, t:Table)   : vector<Position>
+    ..factory (single switch — OCP point)..
+    + {static}  create(t:PieceType, c:Color)             : unique_ptr<Figure>
+}
+
+class King {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<20000>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+    .. castling logic inside ..
+}
+
+class Queen {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<900>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+}
+
+class Rook {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<500>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+}
+
+class Bishop {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<330>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+}
+
+class Knight {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<320>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+}
+
+class Pawn {
+    + getSymbol()                           : char
+    + clone()                               : unique_ptr<Figure>
+    + getMaterialValue()                    : int  <<100>>
+    + getPositionalValue(row, col)          : int
+    + getPseudoMoves(r, c, t)               : vector<Position>
+    .. en-passant + double-push logic ..
+}
+
+Figure <|-- King
+Figure <|-- Queen
+Figure <|-- Rook
+Figure <|-- Bishop
+Figure <|-- Knight
+Figure <|-- Pawn
+
+' ─────────────────────────────────────────
+' Cell
+' ─────────────────────────────────────────
+class Cell {
+    - row    : int
+    - col    : int
+    - figure : Figure*   ' non-owning
+    --
+    + getFigure()          : Figure*
+    + setFigure(f:Figure*) : void
+    + isEmpty()            : bool
+    + getRow()             : int
+    + getCol()             : int
+}
+
+Cell "0..1" o-right- Figure : references (non-owning)
+
+' ─────────────────────────────────────────
+' Table
+' ─────────────────────────────────────────
+class Table {
+    - cells          : Cell[8][8]
+    - pieces         : vector<unique_ptr<Figure>>
+    - captured       : vector<unique_ptr<Figure>>
+    - currentTurn    : Color
+    - enPassantTarget: Position
+    - gameOver       : bool
+    - winner         : Color
+    - isDraw         : bool
+    --
+    + Table()
+    + Table(other : Table&)   ' deep-copy for AI
+    + initialize()            : void
+    + display()               : void
+    + getFigureAt(r,c)        : Figure*
+    + isInBounds(r,c)         : bool
+    + getEnPassantTarget()    : Position
+    + isSquareAttacked(r,c,by): bool
+    + isInCheck(color)        : bool
+    + getValidMoves(r,c)      : vector<Position>
+    + makeMove(fr,fc,tr,tc,p) : bool
+    + isPawnPromotion(...)    : bool
+    + getCurrentTurn()        : Color
+    + isGameOver()            : bool
+    + getWinner()             : Color
+    + getIsDraw()             : bool
+    --
+    - wouldLeaveInCheck(...)  : bool
+    - addPiece(fig,r,c)       : void
+    - removePieceAt(r,c)      : void
+    - inBounds(r,c)           : bool
+}
+
+Table *-- "64" Cell      : composed of
+Table *-- "0..*" Figure  : owns (pieces + captured)
+
+' ─────────────────────────────────────────
+' Move (value struct)
+' ─────────────────────────────────────────
+class Move <<struct>> {
+    + fr        : int
+    + fc        : int
+    + tr        : int
+    + tc        : int
+    + promotion : char
+}
+
+' ─────────────────────────────────────────
+' AI
+' ─────────────────────────────────────────
+class AI {
+    - searchDepth : int
+    --
+    + AI(searchDepth : int = 3)
+    + getBestMove(board:Table, color:Color) : Move
+    --
+    - {static} evaluate(t:Table)                          : int
+    - {static} collectMoves(t:Table, color:Color)         : vector<Move>
+    - {static} charToPromo(p:char)                        : PieceType
+    - minimax(t:Table, depth:int, alpha:int, beta:int)    : int
+}
+
+AI ..> Table : uses (read + deep-copy)
+AI ..> Move  : returns
+AI ..> Figure: reads via Table
+
+' ─────────────────────────────────────────
+' Bridge (extern "C" interface for Python)
+' ─────────────────────────────────────────
+class ChessBridge <<extern "C">> {
+    + chess_create()                              : void*
+    + chess_destroy(handle)                       : void
+    + chess_reset(handle)                         : void
+    + chess_get_board(handle, out:char*)          : void
+    + chess_get_turn(handle)                      : char
+    + chess_is_game_over(handle)                  : int
+    + chess_is_draw(handle)                       : int
+    + chess_get_winner(handle)                    : char
+    + chess_is_in_check(handle, color:char)       : int
+    + chess_get_valid_moves(handle,r,c,positions) : int
+    + chess_make_move(handle,fr,fc,tr,tc,promo)   : int
+    + chess_get_best_move(handle,color,depth,out) : int
+}
+
+ChessBridge ..> Table : manages via void*
+ChessBridge ..> AI    : instantiates
+
+@enduml

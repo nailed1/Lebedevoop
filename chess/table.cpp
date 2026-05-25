@@ -2,23 +2,9 @@
 #include <iostream>
 #include <cstdlib>
 
-// ── Deep-copy helper ──────────────────────────────────────────────────────────
-static std::unique_ptr<Figure> cloneFigure(const Figure* f) {
-    std::unique_ptr<Figure> c;
-    switch (f->getType()) {
-        case PieceType::King:   c = std::make_unique<King>  (f->getColor()); break;
-        case PieceType::Queen:  c = std::make_unique<Queen> (f->getColor()); break;
-        case PieceType::Rook:   c = std::make_unique<Rook>  (f->getColor()); break;
-        case PieceType::Bishop: c = std::make_unique<Bishop>(f->getColor()); break;
-        case PieceType::Knight: c = std::make_unique<Knight>(f->getColor()); break;
-        case PieceType::Pawn:   c = std::make_unique<Pawn>  (f->getColor()); break;
-        default: break;
-    }
-    if (c) c->setHasMoved(f->getHasMoved());
-    return c;
-}
-
-// Copy constructor: creates an independent snapshot of the board (needed by AI).
+// Copy constructor — deep-copy used by the AI search tree.
+// Uses Figure::clone() so no switch-case is needed here; adding a new piece
+// type is fully handled inside the piece class itself.
 Table::Table(const Table& other)
     : currentTurn(other.currentTurn),
       enPassantTarget(other.enPassantTarget),
@@ -30,26 +16,23 @@ Table::Table(const Table& other)
         for (int c = 0; c < 8; c++)
             cells[r][c] = Cell(r, c);
 
-    // Clone every piece that sits on a cell (= all active pieces).
-    // This naturally populates `pieces` in board order.
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Figure* orig = other.cells[r][c].getFigure();
             if (orig) {
-                auto clone = cloneFigure(orig);
-                cells[r][c].setFigure(clone.get());
-                pieces.push_back(std::move(clone));
+                std::unique_ptr<Figure> copy = orig->clone();
+                cells[r][c].setFigure(copy.get());
+                pieces.push_back(std::move(copy));
             }
         }
     }
 
-    // Clone captured pieces (not used by the search, but keeps the object consistent).
-    for (auto& uptr : other.captured)
-        captured.push_back(cloneFigure(uptr.get()));
+    for (size_t i = 0; i < other.captured.size(); i++)
+        captured.push_back(other.captured[i]->clone());
 }
 
 Table::Table()
-    : currentTurn(Color::White), enPassantTarget({-1, -1}),
+    : currentTurn(Color::White), enPassantTarget(Position(-1, -1)),
       gameOver(false), winner(Color::None), isDraw(false)
 {
     for (int r = 0; r < 8; r++)
@@ -66,10 +49,10 @@ void Table::removePieceAt(int r, int c) {
     Figure* fig = cells[r][c].getFigure();
     if (!fig) return;
     cells[r][c].setFigure(nullptr);
-    for (auto it = pieces.begin(); it != pieces.end(); ++it) {
-        if (it->get() == fig) {
-            captured.push_back(std::move(*it));
-            pieces.erase(it);
+    for (size_t i = 0; i < pieces.size(); i++) {
+        if (pieces[i].get() == fig) {
+            captured.push_back(std::move(pieces[i]));
+            pieces.erase(pieces.begin() + static_cast<int>(i));
             return;
         }
     }
@@ -81,35 +64,35 @@ void Table::initialize() {
             cells[r][c].setFigure(nullptr);
     pieces.clear();
     captured.clear();
-    currentTurn = Color::White;
-    enPassantTarget = {-1, -1};
-    gameOver = false;
-    winner = Color::None;
-    isDraw = false;
+    currentTurn      = Color::White;
+    enPassantTarget  = Position(-1, -1);
+    gameOver         = false;
+    winner           = Color::None;
+    isDraw           = false;
 
-    // White: back rank (row 0), pawns (row 1)
-    addPiece(std::make_unique<Rook>(Color::White),   0, 0);
-    addPiece(std::make_unique<Knight>(Color::White), 0, 1);
-    addPiece(std::make_unique<Bishop>(Color::White), 0, 2);
-    addPiece(std::make_unique<Queen>(Color::White),  0, 3);
-    addPiece(std::make_unique<King>(Color::White),   0, 4);
-    addPiece(std::make_unique<Bishop>(Color::White), 0, 5);
-    addPiece(std::make_unique<Knight>(Color::White), 0, 6);
-    addPiece(std::make_unique<Rook>(Color::White),   0, 7);
+    // Uses Figure::create() — adding a custom piece only requires changing
+    // the factory; board setup code stays the same.
+    addPiece(Figure::create(PieceType::Rook,   Color::White), 0, 0);
+    addPiece(Figure::create(PieceType::Knight, Color::White), 0, 1);
+    addPiece(Figure::create(PieceType::Bishop, Color::White), 0, 2);
+    addPiece(Figure::create(PieceType::Queen,  Color::White), 0, 3);
+    addPiece(Figure::create(PieceType::King,   Color::White), 0, 4);
+    addPiece(Figure::create(PieceType::Bishop, Color::White), 0, 5);
+    addPiece(Figure::create(PieceType::Knight, Color::White), 0, 6);
+    addPiece(Figure::create(PieceType::Rook,   Color::White), 0, 7);
     for (int c = 0; c < 8; c++)
-        addPiece(std::make_unique<Pawn>(Color::White), 1, c);
+        addPiece(Figure::create(PieceType::Pawn, Color::White), 1, c);
 
-    // Black: back rank (row 7), pawns (row 6)
-    addPiece(std::make_unique<Rook>(Color::Black),   7, 0);
-    addPiece(std::make_unique<Knight>(Color::Black), 7, 1);
-    addPiece(std::make_unique<Bishop>(Color::Black), 7, 2);
-    addPiece(std::make_unique<Queen>(Color::Black),  7, 3);
-    addPiece(std::make_unique<King>(Color::Black),   7, 4);
-    addPiece(std::make_unique<Bishop>(Color::Black), 7, 5);
-    addPiece(std::make_unique<Knight>(Color::Black), 7, 6);
-    addPiece(std::make_unique<Rook>(Color::Black),   7, 7);
+    addPiece(Figure::create(PieceType::Rook,   Color::Black), 7, 0);
+    addPiece(Figure::create(PieceType::Knight, Color::Black), 7, 1);
+    addPiece(Figure::create(PieceType::Bishop, Color::Black), 7, 2);
+    addPiece(Figure::create(PieceType::Queen,  Color::Black), 7, 3);
+    addPiece(Figure::create(PieceType::King,   Color::Black), 7, 4);
+    addPiece(Figure::create(PieceType::Bishop, Color::Black), 7, 5);
+    addPiece(Figure::create(PieceType::Knight, Color::Black), 7, 6);
+    addPiece(Figure::create(PieceType::Rook,   Color::Black), 7, 7);
     for (int c = 0; c < 8; c++)
-        addPiece(std::make_unique<Pawn>(Color::Black), 6, c);
+        addPiece(Figure::create(PieceType::Pawn, Color::Black), 6, c);
 }
 
 Figure* Table::getFigureAt(int r, int c) const {
@@ -137,8 +120,8 @@ void Table::display() const {
 bool Table::isSquareAttacked(int r, int c, Color byColor) const {
     // Knight
     int knightJ[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
-    for (auto& j : knightJ) {
-        int nr = r + j[0], nc = c + j[1];
+    for (int i = 0; i < 8; i++) {
+        int nr = r + knightJ[i][0], nc = c + knightJ[i][1];
         if (inBounds(nr, nc)) {
             Figure* fig = cells[nr][nc].getFigure();
             if (fig && fig->getColor() == byColor && fig->getType() == PieceType::Knight)
@@ -146,11 +129,11 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Horizontal/vertical (rook, queen)
+    // Horizontal/vertical — rook or queen
     int straightD[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-    for (auto& d : straightD) {
+    for (int d = 0; d < 4; d++) {
         for (int i = 1; i < 8; i++) {
-            int nr = r + d[0] * i, nc = c + d[1] * i;
+            int nr = r + straightD[d][0] * i, nc = c + straightD[d][1] * i;
             if (!inBounds(nr, nc)) break;
             Figure* fig = cells[nr][nc].getFigure();
             if (fig) {
@@ -162,11 +145,11 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Diagonal (bishop, queen)
+    // Diagonal — bishop or queen
     int diagD[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
-    for (auto& d : diagD) {
+    for (int d = 0; d < 4; d++) {
         for (int i = 1; i < 8; i++) {
-            int nr = r + d[0] * i, nc = c + d[1] * i;
+            int nr = r + diagD[d][0] * i, nc = c + diagD[d][1] * i;
             if (!inBounds(nr, nc)) break;
             Figure* fig = cells[nr][nc].getFigure();
             if (fig) {
@@ -191,10 +174,11 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Pawn: a white pawn at (r-1, c±1) attacks (r, c); black at (r+1, c±1)
+    // Pawn
     int pawnRow = (byColor == Color::White) ? r - 1 : r + 1;
-    for (int dc : {-1, 1}) {
-        int nc = c + dc;
+    int pawnDcs[2] = {-1, 1};
+    for (int i = 0; i < 2; i++) {
+        int nc = c + pawnDcs[i];
         if (inBounds(pawnRow, nc)) {
             Figure* fig = cells[pawnRow][nc].getFigure();
             if (fig && fig->getColor() == byColor && fig->getType() == PieceType::Pawn)
@@ -215,15 +199,15 @@ bool Table::isInCheck(Color color) const {
             }
         }
     }
-    return true; // king not found (shouldn't happen)
+    return true; // king missing — should never happen
 }
 
 bool Table::wouldLeaveInCheck(int fr, int fc, int tr, int tc) const {
     Figure* movingFig = cells[fr][fc].getFigure();
-    Figure* toFig = cells[tr][tc].getFigure();
+    Figure* toFig     = cells[tr][tc].getFigure();
 
     // En passant: diagonal pawn move to empty square
-    int epR = -1, epC = -1;
+    int     epR   = -1, epC = -1;
     Figure* epFig = nullptr;
     if (movingFig && movingFig->getType() == PieceType::Pawn && fc != tc && toFig == nullptr) {
         epR = fr; epC = tc;
@@ -231,15 +215,12 @@ bool Table::wouldLeaveInCheck(int fr, int fc, int tr, int tc) const {
         cells[epR][epC].setFigure(nullptr);
     }
 
-    // Castling: also move the rook so simulation is accurate
-    int rookFrom = -1, rookTo = -1;
+    // Castling: move rook for accurate check-detection
+    int     rookFrom = -1, rookTo = -1;
     Figure* castleRook = nullptr;
     if (movingFig && movingFig->getType() == PieceType::King && std::abs(tc - fc) == 2) {
-        if (tc > fc) { // kingside
-            rookFrom = 7; rookTo = fc + 1;
-        } else {        // queenside
-            rookFrom = 0; rookTo = fc - 1;
-        }
+        if (tc > fc) { rookFrom = 7; rookTo = fc + 1; }
+        else         { rookFrom = 0; rookTo = fc - 1; }
         castleRook = cells[fr][rookFrom].getFigure();
         cells[fr][rookTo].setFigure(castleRook);
         cells[fr][rookFrom].setFigure(nullptr);
@@ -253,8 +234,7 @@ bool Table::wouldLeaveInCheck(int fr, int fc, int tr, int tc) const {
     // Restore
     cells[fr][fc].setFigure(movingFig);
     cells[tr][tc].setFigure(toFig);
-    if (epR != -1)
-        cells[epR][epC].setFigure(epFig);
+    if (epR != -1)     cells[epR][epC].setFigure(epFig);
     if (rookFrom != -1) {
         cells[fr][rookFrom].setFigure(castleRook);
         cells[fr][rookTo].setFigure(nullptr);
@@ -265,22 +245,23 @@ bool Table::wouldLeaveInCheck(int fr, int fc, int tr, int tc) const {
 
 std::vector<Position> Table::getValidMoves(int r, int c) const {
     Figure* fig = cells[r][c].getFigure();
-    if (!fig) return {};
+    if (!fig) return std::vector<Position>();
 
-    auto pseudo = fig->getPseudoMoves(r, c, *this);
+    std::vector<Position> pseudo = fig->getPseudoMoves(r, c, *this);
     std::vector<Position> valid;
-    for (auto& m : pseudo) {
-        if (!wouldLeaveInCheck(r, c, m.first, m.second))
-            valid.push_back(m);
+    for (size_t i = 0; i < pseudo.size(); i++) {
+        if (!wouldLeaveInCheck(r, c, pseudo[i].first, pseudo[i].second))
+            valid.push_back(pseudo[i]);
     }
     return valid;
 }
 
 bool Table::isPawnPromotion(int fr, int fc, int tr, int tc) const {
+    (void)fc; (void)tc;
     Figure* fig = cells[fr][fc].getFigure();
     if (!fig || fig->getType() != PieceType::Pawn) return false;
     int promRow = (fig->getColor() == Color::White) ? 7 : 0;
-    return tr == promRow && fc == tc ? !cells[tr][tc].getFigure() || true : tr == promRow;
+    return tr == promRow;
 }
 
 bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
@@ -288,14 +269,14 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
     if (!movingFig || movingFig->getColor() != currentTurn)
         return false;
 
-    auto valid = getValidMoves(fr, fc);
+    std::vector<Position> valid = getValidMoves(fr, fc);
     bool found = false;
-    for (auto& m : valid) {
-        if (m.first == tr && m.second == tc) { found = true; break; }
+    for (size_t i = 0; i < valid.size(); i++) {
+        if (valid[i].first == tr && valid[i].second == tc) { found = true; break; }
     }
     if (!found) return false;
 
-    Position newEP = {-1, -1};
+    Position newEP(-1, -1);
 
     // En passant capture
     if (movingFig->getType() == PieceType::Pawn && fc != tc && !cells[tr][tc].getFigure())
@@ -305,14 +286,14 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
     if (cells[tr][tc].getFigure())
         removePieceAt(tr, tc);
 
-    // Castling: move the rook
+    // Castling: relocate the rook
     if (movingFig->getType() == PieceType::King && std::abs(tc - fc) == 2) {
-        if (tc > fc) { // kingside
+        if (tc > fc) {
             Figure* rook = cells[fr][7].getFigure();
             cells[fr][5].setFigure(rook);
             cells[fr][7].setFigure(nullptr);
             if (rook) rook->setHasMoved(true);
-        } else {        // queenside
+        } else {
             Figure* rook = cells[fr][0].getFigure();
             cells[fr][3].setFigure(rook);
             cells[fr][0].setFigure(nullptr);
@@ -320,34 +301,31 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
         }
     }
 
-    // Pawn double push: set en passant target
+    // Double pawn push: record en-passant target
     if (movingFig->getType() == PieceType::Pawn && std::abs(tr - fr) == 2)
-        newEP = {(fr + tr) / 2, fc};
+        newEP = Position((fr + tr) / 2, fc);
 
-    // Move piece
     cells[tr][tc].setFigure(movingFig);
     cells[fr][fc].setFigure(nullptr);
     movingFig->setHasMoved(true);
 
-    // Pawn promotion
+    // Pawn promotion — Figure::create() replaces the per-case switch
     int promRow = (movingFig->getColor() == Color::White) ? 7 : 0;
     if (movingFig->getType() == PieceType::Pawn && tr == promRow) {
         Color pc = movingFig->getColor();
-        // Remove old pawn
-        for (auto it = pieces.begin(); it != pieces.end(); ++it) {
-            if (it->get() == movingFig) {
-                captured.push_back(std::move(*it));
-                pieces.erase(it);
+        for (size_t i = 0; i < pieces.size(); i++) {
+            if (pieces[i].get() == movingFig) {
+                captured.push_back(std::move(pieces[i]));
+                pieces.erase(pieces.begin() + static_cast<int>(i));
                 break;
             }
         }
-        std::unique_ptr<Figure> newPiece;
-        switch (promotion) {
-            case PieceType::Rook:   newPiece = std::make_unique<Rook>(pc);   break;
-            case PieceType::Bishop: newPiece = std::make_unique<Bishop>(pc); break;
-            case PieceType::Knight: newPiece = std::make_unique<Knight>(pc); break;
-            default:                newPiece = std::make_unique<Queen>(pc);  break;
-        }
+        // Queen is the default promotion piece if an unknown type is passed
+        PieceType promoType = (promotion == PieceType::Rook   ||
+                               promotion == PieceType::Bishop ||
+                               promotion == PieceType::Knight)
+                              ? promotion : PieceType::Queen;
+        std::unique_ptr<Figure> newPiece = Figure::create(promoType, pc);
         newPiece->setHasMoved(true);
         cells[tr][tc].setFigure(newPiece.get());
         pieces.push_back(std::move(newPiece));
@@ -356,7 +334,7 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
     enPassantTarget = newEP;
     currentTurn = (currentTurn == Color::White) ? Color::Black : Color::White;
 
-    // Check for checkmate / stalemate
+    // Checkmate / stalemate detection
     bool hasAnyMove = false;
     for (int r = 0; r < 8 && !hasAnyMove; r++)
         for (int c = 0; c < 8 && !hasAnyMove; c++) {
@@ -367,11 +345,10 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
 
     if (!hasAnyMove) {
         gameOver = true;
-        if (isInCheck(currentTurn)) {
+        if (isInCheck(currentTurn))
             winner = (currentTurn == Color::White) ? Color::Black : Color::White;
-        } else {
+        else
             isDraw = true;
-        }
     }
 
     return true;

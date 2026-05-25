@@ -1,122 +1,31 @@
 #include "ai.h"
-#include <vector>
 #include <algorithm>
 #include <climits>
 
-//  Material values (centipawns) 
-static int pieceValue(PieceType t) {
-    switch (t) {
-        case PieceType::Pawn:   return 100;
-        case PieceType::Knight: return 320;
-        case PieceType::Bishop: return 330;
-        case PieceType::Rook:   return 500;
-        case PieceType::Queen:  return 900;
-        case PieceType::King:   return 20000;
-        default:                return 0;
-    }
-}
+AI::AI(int depth) : searchDepth(depth) {}
 
-//  Piece-square tables ─
-// Indexed [row][col] where row 0 = rank 1 (white's back rank).
-// For white pieces use [r][c] directly.
-// For black pieces mirror the row: use [7-r][c].
-
-static const int PST_PAWN[8][8] = {
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  // rank 1 – impossible for pawns
-    {  5, 10, 10,-20,-20, 10, 10,  5 },  // rank 2 – starting row; penalise centre blocks
-    {  5, -5,-10,  0,  0,-10, -5,  5 },  // rank 3
-    {  0,  0,  0, 20, 20,  0,  0,  0 },  // rank 4 – centre push bonus
-    {  5,  5, 10, 25, 25, 10,  5,  5 },  // rank 5
-    { 10, 10, 20, 30, 30, 20, 10, 10 },  // rank 6 – advanced pawns valuable
-    { 50, 50, 50, 50, 50, 50, 50, 50 },  // rank 7 – about to promote
-    {  0,  0,  0,  0,  0,  0,  0,  0 },  // rank 8 – promotion handled separately
-};
-
-static const int PST_KNIGHT[8][8] = {
-    {-50,-40,-30,-30,-30,-30,-40,-50 },
-    {-40,-20,  0,  5,  5,  0,-20,-40 },
-    {-30,  5, 10, 15, 15, 10,  5,-30 },
-    {-30,  0, 15, 20, 20, 15,  0,-30 },
-    {-30,  5, 15, 20, 20, 15,  5,-30 },
-    {-30,  0, 10, 15, 15, 10,  0,-30 },
-    {-40,-20,  0,  0,  0,  0,-20,-40 },
-    {-50,-40,-30,-30,-30,-30,-40,-50 },
-};
-
-static const int PST_BISHOP[8][8] = {
-    {-20,-10,-10,-10,-10,-10,-10,-20 },
-    {-10,  5,  0,  0,  0,  0,  5,-10 },
-    {-10, 10, 10, 10, 10, 10, 10,-10 },
-    {-10,  0, 10, 10, 10, 10,  0,-10 },
-    {-10,  5,  5, 10, 10,  5,  5,-10 },
-    {-10,  0,  5, 10, 10,  5,  0,-10 },
-    {-10,  0,  0,  0,  0,  0,  0,-10 },
-    {-20,-10,-10,-10,-10,-10,-10,-20 },
-};
-
-static const int PST_ROOK[8][8] = {
-    {  0,  0,  0,  5,  5,  0,  0,  0 },
-    { -5,  0,  0,  0,  0,  0,  0, -5 },
-    { -5,  0,  0,  0,  0,  0,  0, -5 },
-    { -5,  0,  0,  0,  0,  0,  0, -5 },
-    { -5,  0,  0,  0,  0,  0,  0, -5 },
-    { -5,  0,  0,  0,  0,  0,  0, -5 },
-    {  5, 10, 10, 10, 10, 10, 10,  5 },
-    {  0,  0,  0,  0,  0,  0,  0,  0 },
-};
-
-static const int PST_QUEEN[8][8] = {
-    {-20,-10,-10, -5, -5,-10,-10,-20 },
-    {-10,  0,  5,  0,  0,  0,  0,-10 },
-    {-10,  5,  5,  5,  5,  5,  0,-10 },
-    {  0,  0,  5,  5,  5,  5,  0, -5 },
-    { -5,  0,  5,  5,  5,  5,  0, -5 },
-    {-10,  0,  5,  5,  5,  5,  0,-10 },
-    {-10,  0,  0,  0,  0,  0,  0,-10 },
-    {-20,-10,-10, -5, -5,-10,-10,-20 },
-};
-
-static const int PST_KING[8][8] = {
-    { 20, 30, 10,  0,  0, 10, 30, 20 },  // castled king safety bonus
-    { 20, 20,  0,  0,  0,  0, 20, 20 },
-    {-10,-20,-20,-20,-20,-20,-20,-10 },
-    {-20,-30,-30,-40,-40,-30,-30,-20 },
-    {-30,-40,-40,-50,-50,-40,-40,-30 },
-    {-30,-40,-40,-50,-50,-40,-40,-30 },
-    {-30,-40,-40,-50,-50,-40,-40,-30 },
-    {-30,-40,-40,-50,-50,-40,-40,-30 },
-};
-
-static int pst(PieceType t, Color col, int r, int c) {
-    int row = (col == Color::White) ? r : (7 - r);
-    switch (t) {
-        case PieceType::Pawn:   return PST_PAWN  [row][c];
-        case PieceType::Knight: return PST_KNIGHT[row][c];
-        case PieceType::Bishop: return PST_BISHOP[row][c];
-        case PieceType::Rook:   return PST_ROOK  [row][c];
-        case PieceType::Queen:  return PST_QUEEN [row][c];
-        case PieceType::King:   return PST_KING  [row][c];
-        default:                return 0;
-    }
-}
-
-//  Static evaluation ─
-// Positive = good for White, negative = good for Black.
-static int evaluate(const Table& t) {
+// ---------------------------------------------------------------------------
+// Static evaluation — delegates material and positional values to each piece
+// so this function never needs to change when a new piece type is added.
+// ---------------------------------------------------------------------------
+int AI::evaluate(const Table& t) {
     int score = 0;
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Figure* f = t.getFigureAt(r, c);
             if (!f) continue;
-            int v = pieceValue(f->getType()) + pst(f->getType(), f->getColor(), r, c);
+            int v = f->getMaterialValue() + f->getPositionalValue(r, c);
             score += (f->getColor() == Color::White) ? v : -v;
         }
     }
     return score;
 }
 
-//  Move list for one side 
-static std::vector<Move> collectMoves(const Table& t, Color color) {
+// ---------------------------------------------------------------------------
+// Move collection with capture-first ordering (improves alpha-beta cut-offs).
+// Structured bindings replaced with explicit member access for C++11.
+// ---------------------------------------------------------------------------
+std::vector<Move> AI::collectMoves(const Table& t, Color color) {
     std::vector<Move> moves;
     moves.reserve(40);
 
@@ -125,33 +34,36 @@ static std::vector<Move> collectMoves(const Table& t, Color color) {
             Figure* f = t.getFigureAt(r, c);
             if (!f || f->getColor() != color) continue;
 
-            for (auto& [tr, tc] : t.getValidMoves(r, c)) {
+            std::vector<Position> dests = t.getValidMoves(r, c);
+            for (size_t i = 0; i < dests.size(); i++) {
+                int tr = dests[i].first;
+                int tc = dests[i].second;
                 bool isPromo = (f->getType() == PieceType::Pawn && (tr == 0 || tr == 7));
                 if (isPromo) {
-                    // Explore all promotions; queen is first (most likely best)
-                    for (char p : {'Q', 'R', 'B', 'N'})
-                        moves.push_back({r, c, tr, tc, p});
+                    const char promos[] = {'Q', 'R', 'B', 'N'};
+                    for (int p = 0; p < 4; p++) {
+                        Move m; m.fr = r; m.fc = c; m.tr = tr; m.tc = tc; m.promotion = promos[p];
+                        moves.push_back(m);
+                    }
                 } else {
-                    moves.push_back({r, c, tr, tc, 'Q'});
+                    Move m; m.fr = r; m.fc = c; m.tr = tr; m.tc = tc; m.promotion = 'Q';
+                    moves.push_back(m);
                 }
             }
         }
     }
 
-    // Move ordering: captures first (higher victim value = earlier).
-    // Improves alpha-beta pruning significantly.
     std::stable_sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
         Figure* va = t.getFigureAt(a.tr, a.tc);
         Figure* vb = t.getFigureAt(b.tr, b.tc);
-        return (va ? pieceValue(va->getType()) : 0) >
-               (vb ? pieceValue(vb->getType()) : 0);
+        return (va ? va->getMaterialValue() : 0) >
+               (vb ? vb->getMaterialValue() : 0);
     });
 
     return moves;
 }
 
-//  Helpers ─
-static PieceType charToPromo(char p) {
+PieceType AI::charToPromo(char p) {
     switch (p) {
         case 'R': return PieceType::Rook;
         case 'B': return PieceType::Bishop;
@@ -160,11 +72,11 @@ static PieceType charToPromo(char p) {
     }
 }
 
-//  Minimax with alpha-beta ─
-// Score convention: positive = good for White, negative = good for Black.
-// `depth` is remaining half-moves; White maximises, Black minimises.
-static int minimax(const Table& t, int depth, int alpha, int beta) {
-    // Terminal: game ended after the previous move
+// ---------------------------------------------------------------------------
+// Minimax with alpha-beta pruning.
+// White maximises, Black minimises; depth is remaining half-moves.
+// ---------------------------------------------------------------------------
+int AI::minimax(const Table& t, int depth, int alpha, int beta) const {
     if (t.isGameOver()) {
         if (t.getIsDraw()) return 0;
         return (t.getWinner() == Color::White) ? 100000 : -100000;
@@ -172,16 +84,16 @@ static int minimax(const Table& t, int depth, int alpha, int beta) {
 
     if (depth == 0) return evaluate(t);
 
-    Color color = t.getCurrentTurn();
+    Color color  = t.getCurrentTurn();
     bool  maxing = (color == Color::White);
-    auto  moves  = collectMoves(t, color);
-
-    if (moves.empty()) return evaluate(t);   // shouldn't happen if gameOver is set correctly
+    std::vector<Move> moves = collectMoves(t, color);
+    if (moves.empty()) return evaluate(t);
 
     int best = maxing ? INT_MIN : INT_MAX;
 
-    for (auto& m : moves) {
-        Table copy = t;                           // deep copy (see Table copy constructor)
+    for (size_t i = 0; i < moves.size(); i++) {
+        const Move& m = moves[i];
+        Table copy = t;
         copy.makeMove(m.fr, m.fc, m.tr, m.tc, charToPromo(m.promotion));
 
         int val = minimax(copy, depth - 1, alpha, beta);
@@ -194,29 +106,34 @@ static int minimax(const Table& t, int depth, int alpha, int beta) {
             if (best < beta) beta = best;
         }
 
-        if (beta <= alpha) break;   // alpha-beta cut-off
+        if (beta <= alpha) break;
     }
 
     return best;
 }
 
-//  Public API 
-Move getBestMove(const Table& table, Color color, int depth) {
-    auto moves = collectMoves(table, color);
-    if (moves.empty()) return {-1, -1, -1, -1, 'Q'};
+// ---------------------------------------------------------------------------
+// Public entry point.
+// ---------------------------------------------------------------------------
+Move AI::getBestMove(const Table& board, Color color) const {
+    std::vector<Move> moves = collectMoves(board, color);
+    if (moves.empty()) {
+        Move none; none.fr = -1; none.fc = -1; none.tr = -1; none.tc = -1; none.promotion = 'Q';
+        return none;
+    }
 
     bool maxing = (color == Color::White);
     int  best   = maxing ? INT_MIN : INT_MAX;
     Move bestMove = moves[0];
+    int  alpha  = INT_MIN;
+    int  beta   = INT_MAX;
 
-    int alpha = INT_MIN;
-    int beta  = INT_MAX;
-
-    for (auto& m : moves) {
-        Table copy = table;
+    for (size_t i = 0; i < moves.size(); i++) {
+        const Move& m = moves[i];
+        Table copy = board;
         copy.makeMove(m.fr, m.fc, m.tr, m.tc, charToPromo(m.promotion));
 
-        int val = minimax(copy, depth - 1, alpha, beta);
+        int val = minimax(copy, searchDepth - 1, alpha, beta);
 
         bool better = maxing ? (val > best) : (val < best);
         if (better) {

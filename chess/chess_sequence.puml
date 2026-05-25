@@ -1,0 +1,73 @@
+@startuml chess_sequence_make_move
+skinparam sequenceArrowThickness 1.5
+skinparam ParticipantBorderColor #333333
+
+title Table::makeMove() — sequence diagram
+
+actor      "Caller"     as Caller
+participant "Table"     as T
+participant "Figure\n(moving)" as F
+participant "Figure\n(new)"    as NF
+
+Caller -> T : makeMove(fr, fc, tr, tc, promo)
+T -> T      : getValidMoves(fr, fc)
+T -> F      : getPseudoMoves(r, c, *this)
+F --> T     : pseudoMoves[]
+T -> T      : wouldLeaveInCheck() for each
+T --> T     : validMoves[]
+
+alt move not in validMoves
+    T --> Caller : false  (illegal move)
+else move is legal
+    alt en passant
+        T -> T : removePieceAt(captured pawn row)
+    end
+    alt castling (king moves 2 squares)
+        T -> T : relocate rook to correct file
+    end
+
+    T -> F : setHasMoved(true)
+    T -> T : cells[tr][tc] = movingFig\ncells[fr][fc] = nullptr
+
+    alt pawn reaches back rank
+        T -> T          : Figure::create(promoType, color)
+        create NF
+        T --> NF        : new promoted piece
+        T -> T          : replace pawn in pieces[]
+        T -> T          : cells[tr][tc] = newPiece
+    end
+
+    T -> T : enPassantTarget = newEP
+    T -> T : switch currentTurn
+    T -> T : scan board for any legal move\n(checkmate / stalemate detection)
+    T --> Caller : true  (move accepted)
+end
+@enduml
+
+@startuml chess_sequence_ai
+skinparam sequenceArrowThickness 1.5
+
+title AI::getBestMove() — sequence diagram
+
+actor      "Caller" as Caller
+participant "AI"    as Eng
+participant "Table\n(copy)" as TC
+
+Caller -> Eng : getBestMove(board, color)
+Eng -> Eng    : collectMoves(board, color)
+note right of Eng : captures ordered first\n(improves α-β cut-offs)
+
+loop for each candidate move
+    Eng -> TC  : copy = board
+    Eng -> TC  : makeMove(fr,fc,tr,tc,promo)
+    Eng -> Eng : minimax(copy, depth-1, α, β)
+    note right of Eng
+        recursive until depth==0
+        or game over;
+        uses α-β pruning
+    end note
+    Eng -> Eng : update bestMove if better score
+end
+
+Eng --> Caller : bestMove  (fr==-1 if no moves)
+@enduml
