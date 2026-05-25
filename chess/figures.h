@@ -10,7 +10,7 @@ using Position = std::pair<int, int>;
 
 class Table;
 
-// ---------------------------------------------------------------------------
+// -
 // Abstract base — every chess piece must implement these five contracts.
 //
 // Design rationale:
@@ -24,7 +24,7 @@ class Table;
 //   • create()             — factory method: the only place that maps
 //                            PieceType → concrete class; all other code uses
 //                            clone() or this factory.
-// ---------------------------------------------------------------------------
+// -
 class Figure {
 protected:
     Color     color;
@@ -50,9 +50,6 @@ public:
     static std::unique_ptr<Figure> create(PieceType t, Color c);
 };
 
-// ---------------------------------------------------------------------------
-// Concrete pieces — only override what differs from the interface above.
-// ---------------------------------------------------------------------------
 
 class King : public Figure {
 public:

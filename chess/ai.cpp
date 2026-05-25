@@ -4,10 +4,10 @@
 
 AI::AI(int depth) : searchDepth(depth) {}
 
-// ---------------------------------------------------------------------------
+// -
 // Static evaluation — delegates material and positional values to each piece
 // so this function never needs to change when a new piece type is added.
-// ---------------------------------------------------------------------------
+// -
 int AI::evaluate(const Table& t) {
     int score = 0;
     for (int r = 0; r < 8; r++) {
@@ -21,10 +21,10 @@ int AI::evaluate(const Table& t) {
     return score;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Move collection with capture-first ordering (improves alpha-beta cut-offs).
 // Structured bindings replaced with explicit member access for C++11.
-// ---------------------------------------------------------------------------
+// -
 std::vector<Move> AI::collectMoves(const Table& t, Color color) {
     std::vector<Move> moves;
     moves.reserve(40);
@@ -72,10 +72,10 @@ PieceType AI::charToPromo(char p) {
     }
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Minimax with alpha-beta pruning.
 // White maximises, Black minimises; depth is remaining half-moves.
-// ---------------------------------------------------------------------------
+// -
 int AI::minimax(const Table& t, int depth, int alpha, int beta) const {
     if (t.isGameOver()) {
         if (t.getIsDraw()) return 0;
@@ -112,9 +112,9 @@ int AI::minimax(const Table& t, int depth, int alpha, int beta) const {
     return best;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Public entry point.
-// ---------------------------------------------------------------------------
+// -
 Move AI::getBestMove(const Table& board, Color color) const {
     std::vector<Move> moves = collectMoves(board, color);
     if (moves.empty()) {

@@ -1,12 +1,12 @@
 #include "figures.h"
 #include "table.h"
 
-// ---------------------------------------------------------------------------
+// -
 // Piece-square tables (PST) — indexed [row][col], row 0 = rank 1.
 // Positive values favour white; for black pieces the row is mirrored.
 // Centralised here so that adding a new piece only requires adding a new
 // table and implementing getPositionalValue() in the new class.
-// ---------------------------------------------------------------------------
+// -
 
 static const int PST_PAWN[8][8] = {
     {  0,  0,  0,  0,  0,  0,  0,  0 },
@@ -74,9 +74,9 @@ static const int PST_KING[8][8] = {
     {-30,-40,-40,-50,-50,-40,-40,-30 },
 };
 
-// ---------------------------------------------------------------------------
+// -
 // Factory — only place that maps PieceType to a concrete class.
-// ---------------------------------------------------------------------------
+// -
 std::unique_ptr<Figure> Figure::create(PieceType t, Color c) {
     switch (t) {
         case PieceType::King:   return std::unique_ptr<Figure>(new King(c));
@@ -89,9 +89,9 @@ std::unique_ptr<Figure> Figure::create(PieceType t, Color c) {
     }
 }
 
-// ---------------------------------------------------------------------------
+// -
 // King
-// ---------------------------------------------------------------------------
+// -
 char King::getSymbol()        const { return color == Color::White ? 'K' : 'k'; }
 int  King::getMaterialValue() const { return 20000; }
 
@@ -142,9 +142,9 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Queen
-// ---------------------------------------------------------------------------
+// -
 char Queen::getSymbol()        const { return color == Color::White ? 'Q' : 'q'; }
 int  Queen::getMaterialValue() const { return 900; }
 
@@ -178,9 +178,9 @@ std::vector<Position> Queen::getPseudoMoves(int r, int c, const Table& t) const 
     return moves;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Rook
-// ---------------------------------------------------------------------------
+// -
 char Rook::getSymbol()        const { return color == Color::White ? 'R' : 'r'; }
 int  Rook::getMaterialValue() const { return 500; }
 
@@ -214,9 +214,9 @@ std::vector<Position> Rook::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Bishop
-// ---------------------------------------------------------------------------
+// -
 char Bishop::getSymbol()        const { return color == Color::White ? 'B' : 'b'; }
 int  Bishop::getMaterialValue() const { return 330; }
 
@@ -250,9 +250,9 @@ std::vector<Position> Bishop::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Knight
-// ---------------------------------------------------------------------------
+// -
 char Knight::getSymbol()        const { return color == Color::White ? 'N' : 'n'; }
 int  Knight::getMaterialValue() const { return 320; }
 
@@ -280,9 +280,9 @@ std::vector<Position> Knight::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// ---------------------------------------------------------------------------
+// -
 // Pawn
-// ---------------------------------------------------------------------------
+// -
 char Pawn::getSymbol()        const { return color == Color::White ? 'P' : 'p'; }
 int  Pawn::getMaterialValue() const { return 100; }
 
