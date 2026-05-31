@@ -1,0 +1,8 @@
+White: 2
+QD5
+KG1
+Black: 4
+KG8
+pF7
+pG7
+pH7

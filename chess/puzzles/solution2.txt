@@ -1,0 +1,2 @@
+Solution: mate in 1 move.
+1. Qd1-d8#

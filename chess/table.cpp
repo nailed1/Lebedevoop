@@ -2,9 +2,19 @@
 #include <iostream>
 #include <cstdlib>
 
-// Copy constructor — deep-copy used by the AI search tree.
-// Uses Figure::clone() so no switch-case is needed here; adding a new piece
-// type is fully handled inside the piece class itself.
+Table::Table()
+    : currentTurn(Color::White), enPassantTarget(Position(-1, -1)),
+      gameOver(false), winner(Color::None), isDraw(false)
+{
+    for (int r = 0; r < 8; r++)
+        for (int c = 0; c < 8; c++)
+            cells[r][c] = Cell(r, c); // все клетки пустые (figure = NULL)
+}
+
+// [?] Конструктор копирования — вызывается каждый раз когда пишем: Table copy = t;
+//     В минимаксе это происходит в каждом узле дерева поиска.
+//     Глубокое копирование: clone() для каждой занятой клетки — создаём независимую копию фигур.
+//     Без этого изменения на копии-доске влияли бы на оригинал (общие указатели).
 Table::Table(const Table& other)
     : currentTurn(other.currentTurn),
       enPassantTarget(other.enPassantTarget),
@@ -12,66 +22,72 @@ Table::Table(const Table& other)
       winner(other.winner),
       isDraw(other.isDraw)
 {
-    for (int r = 0; r < 8; r++)
-        for (int c = 0; c < 8; c++)
-            cells[r][c] = Cell(r, c);
-
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
-            Figure* orig = other.cells[r][c].getFigure();
-            if (orig) {
-                std::unique_ptr<Figure> copy = orig->clone();
-                cells[r][c].setFigure(copy.get());
-                pieces.push_back(std::move(copy));
-            }
-        }
-    }
-
-    for (size_t i = 0; i < other.captured.size(); i++)
-        captured.push_back(other.captured[i]->clone());
-}
-
-Table::Table()
-    : currentTurn(Color::White), enPassantTarget(Position(-1, -1)),
-      gameOver(false), winner(Color::None), isDraw(false)
-{
-    for (int r = 0; r < 8; r++)
-        for (int c = 0; c < 8; c++)
             cells[r][c] = Cell(r, c);
-}
-
-void Table::addPiece(std::unique_ptr<Figure> fig, int r, int c) {
-    cells[r][c].setFigure(fig.get());
-    pieces.push_back(std::move(fig));
-}
-
-void Table::removePieceAt(int r, int c) {
-    Figure* fig = cells[r][c].getFigure();
-    if (!fig) return;
-    cells[r][c].setFigure(nullptr);
-    for (size_t i = 0; i < pieces.size(); i++) {
-        if (pieces[i].get() == fig) {
-            captured.push_back(std::move(pieces[i]));
-            pieces.erase(pieces.begin() + static_cast<int>(i));
-            return;
+            Figure* orig = other.cells[r][c].getFigure();
+            // clone() для занятых клеток, NULL для пустых
+            cells[r][c].setFigure(orig ? orig->clone() : NULL);
         }
     }
+    // captured больше нет — снятые фигуры удаляются сразу при взятии
 }
 
-void Table::initialize() {
+// [?] delete NULL — в стандарте C++ это явно определено как no-op (ничего не делает, не падает).
+//     Поэтому проверять if (fig != NULL) перед delete не нужно — освобождаем все 64 клетки без условий.
+Table::~Table() {
     for (int r = 0; r < 8; r++)
         for (int c = 0; c < 8; c++)
-            cells[r][c].setFigure(nullptr);
-    pieces.clear();
-    captured.clear();
-    currentTurn      = Color::White;
-    enPassantTarget  = Position(-1, -1);
-    gameOver         = false;
-    winner           = Color::None;
-    isDraw           = false;
+            delete cells[r][c].getFigure();
+}
 
-    // Uses Figure::create() — adding a custom piece only requires changing
-    // the factory; board setup code stays the same.
+// Очищает доску: удаляет все фигуры и сбрасывает состояние игры
+void Table::clearBoard() {
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            delete cells[r][c].getFigure(); // delete NULL безопасен
+            cells[r][c] = Cell(r, c);
+        }
+    }
+    currentTurn     = Color::White;
+    enPassantTarget = Position(-1, -1);
+    gameOver        = false;
+    winner          = Color::None;
+    isDraw          = false;
+}
+
+void Table::placePiece(PieceType::E t, Color::E c, int row, int col) {
+    if (!inBounds(row, col)) return;
+    addPiece(Figure::create(t, c), row, col);
+}
+
+// Помещает фигуру на клетку (предполагается, что клетка пуста)
+void Table::addPiece(Figure* fig, int r, int c) {
+    cells[r][c].setFigure(fig);
+}
+
+// Удаляет фигуру с клетки — O(1), без поиска в векторе
+void Table::removePieceAt(int r, int c) {
+    delete cells[r][c].getFigure(); // освобождаем память сразу
+    cells[r][c].setFigure(NULL);
+}
+
+// Расставляет начальную шахматную позицию
+void Table::initialize() {
+    // Удаляем всё что есть на доске
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            delete cells[r][c].getFigure();
+            cells[r][c] = Cell(r, c);
+        }
+    }
+
+    currentTurn     = Color::White;
+    enPassantTarget = Position(-1, -1);
+    gameOver        = false;
+    winner          = Color::None;
+    isDraw          = false;
+
     addPiece(Figure::create(PieceType::Rook,   Color::White), 0, 0);
     addPiece(Figure::create(PieceType::Knight, Color::White), 0, 1);
     addPiece(Figure::create(PieceType::Bishop, Color::White), 0, 2);
@@ -96,10 +112,11 @@ void Table::initialize() {
 }
 
 Figure* Table::getFigureAt(int r, int c) const {
-    if (!inBounds(r, c)) return nullptr;
+    if (!inBounds(r, c)) return NULL;
     return cells[r][c].getFigure();
 }
 
+// Вывод доски в консоль (для консольного режима и отладки)
 void Table::display() const {
     std::cout << "\n  a b c d e f g h\n";
     for (int r = 7; r >= 0; r--) {
@@ -117,8 +134,8 @@ void Table::display() const {
     std::cout << "  a b c d e f g h\n\n";
 }
 
-bool Table::isSquareAttacked(int r, int c, Color byColor) const {
-    // Knight
+bool Table::isSquareAttacked(int r, int c, Color::E byColor) const {
+    // Конь
     int knightJ[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
     for (int i = 0; i < 8; i++) {
         int nr = r + knightJ[i][0], nc = c + knightJ[i][1];
@@ -129,7 +146,7 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Horizontal/vertical — rook or queen
+    // Ладья или ферзь по горизонтали/вертикали
     int straightD[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
     for (int d = 0; d < 4; d++) {
         for (int i = 1; i < 8; i++) {
@@ -145,7 +162,7 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Diagonal — bishop or queen
+    // Слон или ферзь по диагонали
     int diagD[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
     for (int d = 0; d < 4; d++) {
         for (int i = 1; i < 8; i++) {
@@ -161,7 +178,7 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // King
+    // Король
     for (int dr = -1; dr <= 1; dr++) {
         for (int dc = -1; dc <= 1; dc++) {
             if (dr == 0 && dc == 0) continue;
@@ -174,7 +191,7 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
         }
     }
 
-    // Pawn
+    // Пешка
     int pawnRow = (byColor == Color::White) ? r - 1 : r + 1;
     int pawnDcs[2] = {-1, 1};
     for (int i = 0; i < 2; i++) {
@@ -189,55 +206,59 @@ bool Table::isSquareAttacked(int r, int c, Color byColor) const {
     return false;
 }
 
-bool Table::isInCheck(Color color) const {
+bool Table::isInCheck(Color::E color) const {
     for (int r = 0; r < 8; r++) {
         for (int c = 0; c < 8; c++) {
             Figure* fig = cells[r][c].getFigure();
             if (fig && fig->getColor() == color && fig->getType() == PieceType::King) {
-                Color enemy = (color == Color::White) ? Color::Black : Color::White;
+                Color::E enemy = (color == Color::White) ? Color::Black : Color::White;
                 return isSquareAttacked(r, c, enemy);
             }
         }
     }
-    return true; // king missing — should never happen
+    return true;
 }
 
+// [?] const-метод, но изменяет cells — это законно из-за mutable.
+//     "Логически const": со стороны вызывающего кода позиция не изменилась (всё восстанавливается).
+//     "Физически" — переставляет указатели для симуляции хода, затем откатывает всё обратно.
+//     Ничего не удаляет (нет delete) — только setFigure(). Поэтому safe для mutable-доступа.
 bool Table::wouldLeaveInCheck(int fr, int fc, int tr, int tc) const {
     Figure* movingFig = cells[fr][fc].getFigure();
-    Figure* toFig     = cells[tr][tc].getFigure();
+    Figure* toFig     = cells[tr][tc].getFigure(); // может быть NULL
 
-    // En passant: diagonal pawn move to empty square
+    // Взятие на проходе: пешка идёт по диагонали на пустую клетку
     int     epR   = -1, epC = -1;
-    Figure* epFig = nullptr;
-    if (movingFig && movingFig->getType() == PieceType::Pawn && fc != tc && toFig == nullptr) {
+    Figure* epFig = NULL;
+    if (movingFig && movingFig->getType() == PieceType::Pawn && fc != tc && toFig == NULL) {
         epR = fr; epC = tc;
         epFig = cells[epR][epC].getFigure();
-        cells[epR][epC].setFigure(nullptr);
+        cells[epR][epC].setFigure(NULL); // временно убираем
     }
 
-    // Castling: move rook for accurate check-detection
+    // Рокировка: перемещаем ладью для корректной проверки шаха
     int     rookFrom = -1, rookTo = -1;
-    Figure* castleRook = nullptr;
+    Figure* castleRook = NULL;
     if (movingFig && movingFig->getType() == PieceType::King && std::abs(tc - fc) == 2) {
         if (tc > fc) { rookFrom = 7; rookTo = fc + 1; }
         else         { rookFrom = 0; rookTo = fc - 1; }
         castleRook = cells[fr][rookFrom].getFigure();
         cells[fr][rookTo].setFigure(castleRook);
-        cells[fr][rookFrom].setFigure(nullptr);
+        cells[fr][rookFrom].setFigure(NULL);
     }
 
     cells[tr][tc].setFigure(movingFig);
-    cells[fr][fc].setFigure(nullptr);
+    cells[fr][fc].setFigure(NULL);
 
     bool result = isInCheck(movingFig->getColor());
 
-    // Restore
+    // Восстанавливаем позицию — ничего не было удалено
     cells[fr][fc].setFigure(movingFig);
     cells[tr][tc].setFigure(toFig);
-    if (epR != -1)     cells[epR][epC].setFigure(epFig);
+    if (epR != -1)      cells[epR][epC].setFigure(epFig);
     if (rookFrom != -1) {
         cells[fr][rookFrom].setFigure(castleRook);
-        cells[fr][rookTo].setFigure(nullptr);
+        cells[fr][rookTo].setFigure(NULL);
     }
 
     return result;
@@ -256,15 +277,7 @@ std::vector<Position> Table::getValidMoves(int r, int c) const {
     return valid;
 }
 
-bool Table::isPawnPromotion(int fr, int fc, int tr, int tc) const {
-    (void)fc; (void)tc;
-    Figure* fig = cells[fr][fc].getFigure();
-    if (!fig || fig->getType() != PieceType::Pawn) return false;
-    int promRow = (fig->getColor() == Color::White) ? 7 : 0;
-    return tr == promRow;
-}
-
-bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
+bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType::E promotion) {
     Figure* movingFig = cells[fr][fc].getFigure();
     if (!movingFig || movingFig->getColor() != currentTurn)
         return false;
@@ -278,63 +291,56 @@ bool Table::makeMove(int fr, int fc, int tr, int tc, PieceType promotion) {
 
     Position newEP(-1, -1);
 
-    // En passant capture
+    // Взятие на проходе: убираем пешку с её реальной клетки (fr, tc)
     if (movingFig->getType() == PieceType::Pawn && fc != tc && !cells[tr][tc].getFigure())
         removePieceAt(fr, tc);
 
-    // Normal capture
+    // Обычное взятие: удаляем вражескую фигуру — O(1), без поиска в векторе
     if (cells[tr][tc].getFigure())
         removePieceAt(tr, tc);
 
-    // Castling: relocate the rook
+    // Рокировка: перемещаем ладью
     if (movingFig->getType() == PieceType::King && std::abs(tc - fc) == 2) {
         if (tc > fc) {
             Figure* rook = cells[fr][7].getFigure();
             cells[fr][5].setFigure(rook);
-            cells[fr][7].setFigure(nullptr);
+            cells[fr][7].setFigure(NULL);
             if (rook) rook->setHasMoved(true);
         } else {
             Figure* rook = cells[fr][0].getFigure();
             cells[fr][3].setFigure(rook);
-            cells[fr][0].setFigure(nullptr);
+            cells[fr][0].setFigure(NULL);
             if (rook) rook->setHasMoved(true);
         }
     }
 
-    // Double pawn push: record en-passant target
+    // Двойной ход пешки: записываем клетку взятия на проходе
     if (movingFig->getType() == PieceType::Pawn && std::abs(tr - fr) == 2)
         newEP = Position((fr + tr) / 2, fc);
 
     cells[tr][tc].setFigure(movingFig);
-    cells[fr][fc].setFigure(nullptr);
+    cells[fr][fc].setFigure(NULL);
     movingFig->setHasMoved(true);
 
-    // Pawn promotion — Figure::create() replaces the per-case switch
+    // Превращение пешки
     int promRow = (movingFig->getColor() == Color::White) ? 7 : 0;
     if (movingFig->getType() == PieceType::Pawn && tr == promRow) {
-        Color pc = movingFig->getColor();
-        for (size_t i = 0; i < pieces.size(); i++) {
-            if (pieces[i].get() == movingFig) {
-                captured.push_back(std::move(pieces[i]));
-                pieces.erase(pieces.begin() + static_cast<int>(i));
-                break;
-            }
-        }
-        // Queen is the default promotion piece if an unknown type is passed
-        PieceType promoType = (promotion == PieceType::Rook   ||
-                               promotion == PieceType::Bishop ||
-                               promotion == PieceType::Knight)
-                              ? promotion : PieceType::Queen;
-        std::unique_ptr<Figure> newPiece = Figure::create(promoType, pc);
+        Color::E pc = movingFig->getColor();
+        PieceType::E promoType = (promotion == PieceType::Rook   ||
+                                   promotion == PieceType::Bishop ||
+                                   promotion == PieceType::Knight)
+                                  ? promotion : PieceType::Queen;
+        // Удаляем пешку, создаём новую фигуру — без поиска в pieces
+        Figure* newPiece = Figure::create(promoType, pc);
         newPiece->setHasMoved(true);
-        cells[tr][tc].setFigure(newPiece.get());
-        pieces.push_back(std::move(newPiece));
+        delete movingFig;                    // пешка больше не нужна
+        cells[tr][tc].setFigure(newPiece);   // заменяем в клетке
     }
 
     enPassantTarget = newEP;
     currentTurn = (currentTurn == Color::White) ? Color::Black : Color::White;
 
-    // Checkmate / stalemate detection
+    // Проверка мата и пата
     bool hasAnyMove = false;
     for (int r = 0; r < 8 && !hasAnyMove; r++)
         for (int c = 0; c < 8 && !hasAnyMove; c++) {

@@ -1,0 +1,7 @@
+White: 2
+QD1
+KH1
+Black: 3
+KA8
+pA7
+pB7

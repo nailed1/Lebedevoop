@@ -1,0 +1,56 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+
+class "TextFile<T>" {
+    + data : vector<T>
+    - path_ : string
+    --
+    + TextFile()
+    + TextFile(filePath : char*, write : bool)
+    + TextFile(dir : char*, mask : char*)
+    + save(filePath : char*) : void
+    + save() : void
+    + appendFrom(other : TextFile<T>&) : void
+    + uniqueLines(other : TextFile<T>&) : TextFile<T>
+    + commonLines(other : TextFile<T>&) : TextFile<T>
+    + sortByField(fieldIdx : int, ascending : bool) : void
+    + sumField(fieldIdx : int) : double
+    + size() : size_t
+    + operator+=(other : TextFile<T>&) : TextFile<T>&
+    + operator+(other : TextFile<T>&) : TextFile<T>
+    + operator-=(other : TextFile<T>&) : TextFile<T>&
+    + operator-(other : TextFile<T>&) : TextFile<T>
+    - loadFile(filePath : char*) : void
+    - appendFile(filePath : char*) : void
+}
+
+class FormatRowFile {
+    + fields : vector<string>
+    + raw : string
+    --
+    + FormatRowFile()
+    + FormatRowFile(line : char*)
+    + FormatRowFile(line : string&)
+    + operator==(o : FormatRowFile&) : bool
+    + operator<(o : FormatRowFile&) : bool
+    + toString() : string&
+    + fieldCount() : size_t
+    + field(idx : int) : string&
+    - parse() : void
+}
+
+"TextFile<T>" *-- "0..*" FormatRowFile : data\n(при T = FormatRowFile)
+
+note top of "TextFile<T>"
+  Шаблонный класс.
+  Явная инстанциация:
+  TextFile<FormatRowFile>
+end note
+
+note right of FormatRowFile
+  Строка файла, разобранная
+  на поля (разделитель — пробел/таб)
+end note
+
+@enduml

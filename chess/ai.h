@@ -1,32 +1,36 @@
-#pragma once
+#ifndef AI_H
+#define AI_H
+
 #include "table.h"
 #include <vector>
 
+// Описание хода: откуда, куда, во что превращается пешка
 struct Move {
     int  fr, fc, tr, tc;
-    char promotion;   // 'Q' | 'R' | 'B' | 'N'
+    char promotion; // 'Q' | 'R' | 'B' | 'N'
 };
 
-// Minimax engine with alpha-beta pruning and material+PST evaluation.
-// Encapsulated as a class so the search depth is configured once at
-// construction and callers do not need to pass it on every call.
+// Шахматный ИИ на основе минимакса с альфа-бета отсечением
 class AI {
 public:
     explicit AI(int searchDepth = 3);
 
-    // Returns the best legal move for `color`. Move::fr == -1 means no moves.
-    Move getBestMove(const Table& board, Color color) const;
+    // Возвращает лучший ход для заданного цвета
+    Move getBestMove(const Table& board, Color::E color) const;
 
 private:
     int searchDepth;
 
-    // Positive score = good for White, negative = good for Black.
+    // Статическая оценка позиции (положительная = выгодна белым)
     static int evaluate(const Table& t);
 
-    // Collects and orders all legal moves for `color` (captures first).
-    static std::vector<Move> collectMoves(const Table& t, Color color);
+    // Собирает все легальные ходы для заданного цвета
+    static std::vector<Move> collectMoves(const Table& t, Color::E color);
 
-    static PieceType charToPromo(char p);
+    static PieceType::E charToPromo(char p);
 
+    // Рекурсивный поиск минимакса с отсечением
     int minimax(const Table& t, int depth, int alpha, int beta) const;
 };
+
+#endif // AI_H

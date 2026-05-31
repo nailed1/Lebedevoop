@@ -1,0 +1,4 @@
+Solution: mate in 2 moves.
+1. Nc4-e5
+   (e.g. 1... f6-f5)
+2. Qa4-h4#

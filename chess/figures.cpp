@@ -1,13 +1,8 @@
 #include "figures.h"
 #include "table.h"
 
-// -
-// Piece-square tables (PST) — indexed [row][col], row 0 = rank 1.
-// Positive values favour white; for black pieces the row is mirrored.
-// Centralised here so that adding a new piece only requires adding a new
-// table and implementing getPositionalValue() in the new class.
-// -
-
+// Позиционные бонусы (piece-square tables): каждая фигура получает бонус
+// в зависимости от клетки. Индексация от 0 (ряд 1) до 7 (ряд 8).
 static const int PST_PAWN[8][8] = {
     {  0,  0,  0,  0,  0,  0,  0,  0 },
     {  5, 10, 10,-20,-20, 10, 10,  5 },
@@ -74,41 +69,46 @@ static const int PST_KING[8][8] = {
     {-30,-40,-40,-50,-50,-40,-40,-30 },
 };
 
-// -
-// Factory — only place that maps PieceType to a concrete class.
-// -
-std::unique_ptr<Figure> Figure::create(PieceType t, Color c) {
+// [?] Фабричный метод: switch по типу, возвращает указатель на базовый класс Figure*.
+//     Весь код снаружи работает только с Figure* — не зная, King это или Pawn.
+//     Это и есть полиморфизм: один интерфейс, разные реализации.
+Figure* Figure::create(PieceType::E t, Color::E c) {
     switch (t) {
-        case PieceType::King:   return std::unique_ptr<Figure>(new King(c));
-        case PieceType::Queen:  return std::unique_ptr<Figure>(new Queen(c));
-        case PieceType::Rook:   return std::unique_ptr<Figure>(new Rook(c));
-        case PieceType::Bishop: return std::unique_ptr<Figure>(new Bishop(c));
-        case PieceType::Knight: return std::unique_ptr<Figure>(new Knight(c));
-        case PieceType::Pawn:   return std::unique_ptr<Figure>(new Pawn(c));
-        default:                return std::unique_ptr<Figure>();
+        case PieceType::King:   return new King(c);
+        case PieceType::Queen:  return new Queen(c);
+        case PieceType::Rook:   return new Rook(c);
+        case PieceType::Bishop: return new Bishop(c);
+        case PieceType::Knight: return new Knight(c);
+        case PieceType::Pawn:   return new Pawn(c);
+        default:                return NULL;
     }
 }
 
-// -
-// King
-// -
+// Король
+
 char King::getSymbol()        const { return color == Color::White ? 'K' : 'k'; }
 int  King::getMaterialValue() const { return 20000; }
 
-std::unique_ptr<Figure> King::clone() const {
-    std::unique_ptr<Figure> c(new King(color));
+// [?] clone() — почему не просто new King(*this)?
+//     Можно было бы, если бы у King был copy constructor. Здесь hasMoved копируется вручную.
+//     Главное: метод виртуальный — вызов через Figure* идёт в King::clone(), Queen::clone() и т.д.
+//     Table::Table(const Table&) вызывает orig->clone() не зная реального типа — и получает правильную копию.
+Figure* King::clone() const {
+    Figure* c = new King(color);
     c->setHasMoved(hasMoved);
     return c;
 }
 
 int King::getPositionalValue(int row, int col) const {
+    // [?] Почему (7 - row) для чёрных? PST-таблицы написаны с точки зрения белых (ряд 0 = их база).
+    //     Для чёрных "их база" — ряд 7, поэтому зеркалим индекс.
     int r = (color == Color::White) ? row : (7 - row);
     return PST_KING[r][col];
 }
 
 std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
     std::vector<Position> moves;
-    Color enemy = (color == Color::White) ? Color::Black : Color::White;
+    Color::E enemy = (color == Color::White) ? Color::Black : Color::White;
 
     for (int dr = -1; dr <= 1; dr++) {
         for (int dc = -1; dc <= 1; dc++) {
@@ -121,8 +121,8 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
         }
     }
 
+    // Рокировка: проверяем, что король и ладья не двигались и путь свободен
     if (!hasMoved && !t.isSquareAttacked(r, c, enemy)) {
-        // Kingside
         Figure* kr = t.getFigureAt(r, c + 3);
         if (kr && kr->getType() == PieceType::Rook && kr->getColor() == color &&
             !kr->getHasMoved() &&
@@ -130,7 +130,6 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
             !t.isSquareAttacked(r, c + 1, enemy) && !t.isSquareAttacked(r, c + 2, enemy))
             moves.push_back(Position(r, c + 2));
 
-        // Queenside
         Figure* qr = t.getFigureAt(r, c - 4);
         if (qr && qr->getType() == PieceType::Rook && qr->getColor() == color &&
             !qr->getHasMoved() &&
@@ -142,14 +141,13 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// -
-// Queen
-// -
+// Ферзь
+
 char Queen::getSymbol()        const { return color == Color::White ? 'Q' : 'q'; }
 int  Queen::getMaterialValue() const { return 900; }
 
-std::unique_ptr<Figure> Queen::clone() const {
-    std::unique_ptr<Figure> c(new Queen(color));
+Figure* Queen::clone() const {
+    Figure* c = new Queen(color);
     c->setHasMoved(hasMoved);
     return c;
 }
@@ -178,14 +176,13 @@ std::vector<Position> Queen::getPseudoMoves(int r, int c, const Table& t) const 
     return moves;
 }
 
-// -
-// Rook
-// -
+// Ладья
+
 char Rook::getSymbol()        const { return color == Color::White ? 'R' : 'r'; }
 int  Rook::getMaterialValue() const { return 500; }
 
-std::unique_ptr<Figure> Rook::clone() const {
-    std::unique_ptr<Figure> c(new Rook(color));
+Figure* Rook::clone() const {
+    Figure* c = new Rook(color);
     c->setHasMoved(hasMoved);
     return c;
 }
@@ -214,14 +211,13 @@ std::vector<Position> Rook::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// -
-// Bishop
-// -
+// Слон
+
 char Bishop::getSymbol()        const { return color == Color::White ? 'B' : 'b'; }
 int  Bishop::getMaterialValue() const { return 330; }
 
-std::unique_ptr<Figure> Bishop::clone() const {
-    std::unique_ptr<Figure> c(new Bishop(color));
+Figure* Bishop::clone() const {
+    Figure* c = new Bishop(color);
     c->setHasMoved(hasMoved);
     return c;
 }
@@ -250,14 +246,13 @@ std::vector<Position> Bishop::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// -
-// Knight
-// -
+// Конь
+
 char Knight::getSymbol()        const { return color == Color::White ? 'N' : 'n'; }
 int  Knight::getMaterialValue() const { return 320; }
 
-std::unique_ptr<Figure> Knight::clone() const {
-    std::unique_ptr<Figure> c(new Knight(color));
+Figure* Knight::clone() const {
+    Figure* c = new Knight(color);
     c->setHasMoved(hasMoved);
     return c;
 }
@@ -280,14 +275,13 @@ std::vector<Position> Knight::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// -
-// Pawn
-// -
+// Пешка
+
 char Pawn::getSymbol()        const { return color == Color::White ? 'P' : 'p'; }
 int  Pawn::getMaterialValue() const { return 100; }
 
-std::unique_ptr<Figure> Pawn::clone() const {
-    std::unique_ptr<Figure> c(new Pawn(color));
+Figure* Pawn::clone() const {
+    Figure* c = new Pawn(color);
     c->setHasMoved(hasMoved);
     return c;
 }
@@ -302,12 +296,14 @@ std::vector<Position> Pawn::getPseudoMoves(int r, int c, const Table& t) const {
     int dir      = (color == Color::White) ? 1 : -1;
     int startRow = (color == Color::White) ? 1 : 6;
 
+    // Ход вперёд (один или два поля с начальной позиции)
     if (t.isInBounds(r + dir, c) && !t.getFigureAt(r + dir, c)) {
         moves.push_back(Position(r + dir, c));
         if (r == startRow && !t.getFigureAt(r + 2 * dir, c))
             moves.push_back(Position(r + 2 * dir, c));
     }
 
+    // Взятие по диагонали (обычное и на проходе)
     int dcs[2] = {-1, 1};
     for (int i = 0; i < 2; i++) {
         int dc = dcs[i];

@@ -1,37 +1,31 @@
-/**
- * chess_bridge.cpp
- * C-compatible API wrapping the C++ chess engine (Table / Figure / AI).
- * Compiled as a shared library; loaded by chess_gui.py via ctypes.
- */
+// C-совместимый API над C++ движком. Компилируется в libchess.dylib,
+// загружается из Python через ctypes.
 #include "table.h"
 #include "ai.h"
+#include "mate_searcher.h"
 #include <cstring>
 
 extern "C" {
 
-/*  Lifecycle  */
-
+// Создаёт новую доску с начальной позицией, возвращает непрозрачный указатель
 void* chess_create() {
     Table* t = new Table();
     t->initialize();
     return t;
 }
 
+// Удаляет объект доски
 void chess_destroy(void* handle) {
     delete static_cast<Table*>(handle);
 }
 
+// Сбрасывает позицию к начальной
 void chess_reset(void* handle) {
     static_cast<Table*>(handle)->initialize();
 }
 
-/*  Board snapshot  */
-
-/**
- * Fills `out` with 64 chars (+NUL) representing the board.
- * Index = row*8 + col  (row 0 = rank 1, col 0 = file a).
- * Piece chars: K Q R B N P (white upper, black lower), '.' for empty.
- */
+// Записывает состояние доски в строку из 64 символов (строка 0 = ряд 1)
+// Заглавные буквы — белые, строчные — чёрные, '.' — пустая клетка
 void chess_get_board(void* handle, char* out) {
     Table* t = static_cast<Table*>(handle);
     for (int r = 0; r < 8; r++)
@@ -42,42 +36,37 @@ void chess_get_board(void* handle, char* out) {
     out[64] = '\0';
 }
 
-/*  Turn / state  */
-
-/** Returns 'W' or 'B'. */
+// Возвращает текущий ход: 'W' или 'B'
 char chess_get_turn(void* handle) {
     return static_cast<Table*>(handle)->getCurrentTurn() == Color::White ? 'W' : 'B';
 }
 
+// Возвращает 1, если игра закончена
 int chess_is_game_over(void* handle) {
     return static_cast<Table*>(handle)->isGameOver() ? 1 : 0;
 }
 
+// Возвращает 1, если ничья (пат)
 int chess_is_draw(void* handle) {
     return static_cast<Table*>(handle)->getIsDraw() ? 1 : 0;
 }
 
-/** Returns 'W', 'B', or 'N' (none). */
+// Возвращает победителя: 'W', 'B' или 'N' (нет)
 char chess_get_winner(void* handle) {
-    Color w = static_cast<Table*>(handle)->getWinner();
+    Color::E w = static_cast<Table*>(handle)->getWinner();
     if (w == Color::White) return 'W';
     if (w == Color::Black) return 'B';
     return 'N';
 }
 
-/** color: 'W' or 'B'.  Returns 1 if that side is in check. */
+// Возвращает 1, если указанный цвет сейчас под шахом
 int chess_is_in_check(void* handle, char color) {
-    Color c = (color == 'W') ? Color::White : Color::Black;
+    Color::E c = (color == 'W') ? Color::White : Color::Black;
     return static_cast<Table*>(handle)->isInCheck(c) ? 1 : 0;
 }
 
-/*  Move generation  */
-
-/**
- * Get legal destinations for the piece at (r, c).
- * `positions` must point to a buffer of at least 56 ints (28 squares x 2).
- * Returns the number of moves; writes return_value*2 ints.
- */
+// Записывает в positions все допустимые ходы для фигуры на (r,c).
+// Формат: [row0, col0, row1, col1, ...]. Возвращает количество ходов.
 int chess_get_valid_moves(void* handle, int r, int c, int* positions) {
     std::vector<Position> moves = static_cast<Table*>(handle)->getValidMoves(r, c);
     int n = 0;
@@ -89,15 +78,9 @@ int chess_get_valid_moves(void* handle, int r, int c, int* positions) {
     return n;
 }
 
-/*  Execute move  */
-
-/**
- * Make a move from (fr, fc) to (tr, tc).
- * promotion: 'Q'|'R'|'B'|'N' (only relevant for pawn promotion).
- * Returns 1 on success, 0 if illegal.
- */
+// Делает ход (fr,fc)->(tr,tc). promotion: 'Q'/'R'/'B'/'N'. Возвращает 1 при успехе.
 int chess_make_move(void* handle, int fr, int fc, int tr, int tc, char promotion) {
-    PieceType promo;
+    PieceType::E promo;
     switch (promotion) {
         case 'R': promo = PieceType::Rook;   break;
         case 'B': promo = PieceType::Bishop; break;
@@ -107,17 +90,12 @@ int chess_make_move(void* handle, int fr, int fc, int tr, int tc, char promotion
     return static_cast<Table*>(handle)->makeMove(fr, fc, tr, tc, promo) ? 1 : 0;
 }
 
-/*  AI  */
-
-/**
- * Find the best move for `color` at the given search depth (3 recommended).
- * out[0..3] = fr, fc, tr, tc
- * out[4]    = promotion as ASCII int ('Q'=81, 'R'=82, 'B'=66, 'N'=78)
- * Returns 1 if a move was found, 0 if no legal moves exist.
- */
+// Ищет лучший ход для color через минимакс глубиной depth.
+// Результат в out[0..4]: fr, fc, tr, tc, символ превращения (int).
+// Возвращает 1, если ход найден.
 int chess_get_best_move(void* handle, char color, int depth, int* out) {
-    Color  c = (color == 'W') ? Color::White : Color::Black;
-    Move   m = AI(depth).getBestMove(*static_cast<Table*>(handle), c);
+    Color::E c = (color == 'W') ? Color::White : Color::Black;
+    Move     m = AI(depth).getBestMove(*static_cast<Table*>(handle), c);
     if (m.fr < 0) return 0;
     out[0] = m.fr;
     out[1] = m.fc;
@@ -125,6 +103,34 @@ int chess_get_best_move(void* handle, char color, int depth, int* out) {
     out[3] = m.tc;
     out[4] = static_cast<int>(m.promotion);
     return 1;
+}
+
+// Загружает позицию из файла задачи. Возвращает 1 при успехе.
+int chess_load_position(void* handle, const char* filename) {
+    Table* t = static_cast<Table*>(handle);
+    return MateSearcher::loadPosition(*t, std::string(filename)) ? 1 : 0;
+}
+
+// Ищет ход белых, ведущий к форсированному мату не более чем за max_depth ходов.
+// Результат в out[0..4]: fr, fc, tr, tc, символ превращения (int).
+// Возвращает 1, если мат найден.
+int chess_find_mate_move(void* handle, int max_depth, int* out) {
+    Table* t = static_cast<Table*>(handle);
+    Move m = MateSearcher::findMatingMove(*t, max_depth);
+    if (m.fr < 0) return 0;
+    out[0] = m.fr;
+    out[1] = m.fc;
+    out[2] = m.tr;
+    out[3] = m.tc;
+    out[4] = static_cast<int>(m.promotion);
+    return 1;
+}
+
+// Полное решение задачи: загрузить из input_file, найти мат, записать в output_file.
+// Возвращает количество ходов белых в решении (0 = не найдено).
+int chess_solve_puzzle(const char* input_file, const char* output_file) {
+    return MateSearcher::solvePuzzle(std::string(input_file),
+                                      std::string(output_file));
 }
 
 } // extern "C"

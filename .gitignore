@@ -1,6 +1,10 @@
 # moon data
 class_DateTime/Moon/
 
+#starlink data
+samostoyatelnaya/STARLINK/
+samostoyatelnaya/result_union.dat
+
 #guide
 ./guide/
 
