@@ -81,7 +81,7 @@ Figure* Figure::create(PieceType::E t, Color::E c) {
     }
 }
 
-// ====== Король ======
+//  Король 
 
 char King::getSymbol()        const { return color == Color::White ? 'K' : 'k'; }
 int  King::getMaterialValue() const { return 20000; }
@@ -132,7 +132,7 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// ====== Ферзь ======
+//  Ферзь 
 
 char Queen::getSymbol()        const { return color == Color::White ? 'Q' : 'q'; }
 int  Queen::getMaterialValue() const { return 900; }
@@ -168,7 +168,7 @@ std::vector<Position> Queen::getPseudoMoves(int r, int c, const Table& t) const 
     return moves;
 }
 
-// ====== Ладья ======
+//  Ладья 
 
 char Rook::getSymbol()        const { return color == Color::White ? 'R' : 'r'; }
 int  Rook::getMaterialValue() const { return 500; }
@@ -203,7 +203,7 @@ std::vector<Position> Rook::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// ====== Слон ======
+//  Слон 
 
 char Bishop::getSymbol()        const { return color == Color::White ? 'B' : 'b'; }
 int  Bishop::getMaterialValue() const { return 330; }
@@ -238,7 +238,7 @@ std::vector<Position> Bishop::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// ====== Конь ======
+//  Конь 
 
 char Knight::getSymbol()        const { return color == Color::White ? 'N' : 'n'; }
 int  Knight::getMaterialValue() const { return 320; }
@@ -267,7 +267,7 @@ std::vector<Position> Knight::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// ====== Пешка ======
+//  Пешка 
 
 char Pawn::getSymbol()        const { return color == Color::White ? 'P' : 'p'; }
 int  Pawn::getMaterialValue() const { return 100; }
