@@ -1,2 +1,0 @@
-Solution: mate in 1 move.
-1. Qa5-d8#

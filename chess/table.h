@@ -6,54 +6,32 @@
 
 // Шахматная доска.
 //
-// Владение фигурами: каждая клетка cells[r][c] является единственным
-// владельцем своей фигуры. Нет отдельных векторов pieces/captured —
-// Table::~Table просто удаляет всё, что есть в клетках.
-//
-// Преимущество: удаление фигуры (взятие) — O(1) delete, без линейного поиска.
-// Копирование доски (нужно в каждом узле минимакса) — ровно 64 итерации,
-// без лишнего копирования вектора снятых фигур.
+// Владение фигурами: cells[8][8] — единственный владелец всех Figure*.
+// Взятие: removePieceAt = O(1) delete. Копирование: 64 clone(), без лишних векторов.
 class Table {
 private:
-    // [?] mutable — позволяет изменять поле даже в const-методе.
-    //     wouldLeaveInCheck объявлен const (не меняет "логическое" состояние доски),
-    //     но физически переставляет указатели для симуляции хода.
-    //     Без mutable компилятор запретил бы любое изменение поля внутри const-метода.
+    // mutable: wouldLeaveInCheck — const-метод, но временно двигает фигуры
     mutable Cell cells[8][8];
 
     Color::E currentTurn;
-    Position enPassantTarget; // клетка взятия на проходе, (-1,-1) если нет
+    Position enPassantTarget; // (-1,-1) если взятие на проходе недоступно
     bool     gameOver;
     Color::E winner;
     bool     isDraw;
 
     bool inBounds(int r, int c) const { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
-    // Проверяет, оставит ли ход своего короля под шахом (временно симулирует ход)
     bool wouldLeaveInCheck(int fr, int fc, int tr, int tc) const;
-
-    // Помещает фигуру на клетку (не удаляет то, что там было — вызывающий обязан
-    // сначала очистить клетку через removePieceAt)
     void addPiece(Figure* fig, int r, int c);
-
-    // Удаляет фигуру с клетки и сразу освобождает память
     void removePieceAt(int r, int c);
 
 public:
     Table();
-
-    // [?] Конструктор копирования объявлен явно — нужно глубокое копирование.
-    //     Стандартный (сгенерированный компилятором) скопировал бы только указатели в cells:
-    //     оба объекта Table владели бы одними фигурами → double free при деструкции.
-    //     Здесь: для каждой занятой клетки вызываем orig->clone() — независимая копия.
-    Table(const Table& other);
-
-    // [?] Деструктор явный — освобождает все фигуры на доске.
-    //     Без него фигуры (created via new) утекли бы при уничтожении Table.
+    Table(const Table& other); // глубокое копирование: clone() для каждой фигуры
     ~Table();
 
-    void initialize(); // расставляет начальную позицию
-    void display()   const; // вывод в консоль
+    void initialize();
+    void display() const;
 
     Figure*  getFigureAt(int r, int c) const;
     bool     isInBounds(int r, int c) const { return inBounds(r, c); }
@@ -67,7 +45,6 @@ public:
     bool makeMove(int fr, int fc, int tr, int tc,
                   PieceType::E promotion = PieceType::Queen);
 
-    // Для загрузки позиций из файлов задач
     void clearBoard();
     void placePiece(PieceType::E t, Color::E c, int row, int col);
 

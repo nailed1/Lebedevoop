@@ -1,8 +1,8 @@
 #include "figures.h"
 #include "table.h"
 
-// Позиционные бонусы (piece-square tables): каждая фигура получает бонус
-// в зависимости от клетки. Индексация от 0 (ряд 1) до 7 (ряд 8).
+// Позиционные бонусы (piece-square tables): бонус за нахождение фигуры на клетке.
+// Индексация: [row][col], row=0 — база белых. Для чёрных зеркалится: r = 7 - row.
 static const int PST_PAWN[8][8] = {
     {  0,  0,  0,  0,  0,  0,  0,  0 },
     {  5, 10, 10,-20,-20, 10, 10,  5 },
@@ -69,9 +69,6 @@ static const int PST_KING[8][8] = {
     {-30,-40,-40,-50,-50,-40,-40,-30 },
 };
 
-// [?] Фабричный метод: switch по типу, возвращает указатель на базовый класс Figure*.
-//     Весь код снаружи работает только с Figure* — не зная, King это или Pawn.
-//     Это и есть полиморфизм: один интерфейс, разные реализации.
 Figure* Figure::create(PieceType::E t, Color::E c) {
     switch (t) {
         case PieceType::King:   return new King(c);
@@ -84,15 +81,11 @@ Figure* Figure::create(PieceType::E t, Color::E c) {
     }
 }
 
-// Король
+// ====== Король ======
 
 char King::getSymbol()        const { return color == Color::White ? 'K' : 'k'; }
 int  King::getMaterialValue() const { return 20000; }
 
-// [?] clone() — почему не просто new King(*this)?
-//     Можно было бы, если бы у King был copy constructor. Здесь hasMoved копируется вручную.
-//     Главное: метод виртуальный — вызов через Figure* идёт в King::clone(), Queen::clone() и т.д.
-//     Table::Table(const Table&) вызывает orig->clone() не зная реального типа — и получает правильную копию.
 Figure* King::clone() const {
     Figure* c = new King(color);
     c->setHasMoved(hasMoved);
@@ -100,8 +93,6 @@ Figure* King::clone() const {
 }
 
 int King::getPositionalValue(int row, int col) const {
-    // [?] Почему (7 - row) для чёрных? PST-таблицы написаны с точки зрения белых (ряд 0 = их база).
-    //     Для чёрных "их база" — ряд 7, поэтому зеркалим индекс.
     int r = (color == Color::White) ? row : (7 - row);
     return PST_KING[r][col];
 }
@@ -121,16 +112,16 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
         }
     }
 
-    // Рокировка: проверяем, что король и ладья не двигались и путь свободен
+    // Рокировка: король и ладья не двигались, путь свободен, клетки не под шахом
     if (!hasMoved && !t.isSquareAttacked(r, c, enemy)) {
-        Figure* kr = t.getFigureAt(r, c + 3);
+        Figure* kr = t.getFigureAt(r, c + 3); // короткая рокировка (ладья h)
         if (kr && kr->getType() == PieceType::Rook && kr->getColor() == color &&
             !kr->getHasMoved() &&
             !t.getFigureAt(r, c + 1) && !t.getFigureAt(r, c + 2) &&
             !t.isSquareAttacked(r, c + 1, enemy) && !t.isSquareAttacked(r, c + 2, enemy))
             moves.push_back(Position(r, c + 2));
 
-        Figure* qr = t.getFigureAt(r, c - 4);
+        Figure* qr = t.getFigureAt(r, c - 4); // длинная рокировка (ладья a)
         if (qr && qr->getType() == PieceType::Rook && qr->getColor() == color &&
             !qr->getHasMoved() &&
             !t.getFigureAt(r, c - 1) && !t.getFigureAt(r, c - 2) && !t.getFigureAt(r, c - 3) &&
@@ -141,7 +132,7 @@ std::vector<Position> King::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// Ферзь
+// ====== Ферзь ======
 
 char Queen::getSymbol()        const { return color == Color::White ? 'Q' : 'q'; }
 int  Queen::getMaterialValue() const { return 900; }
@@ -157,6 +148,7 @@ int Queen::getPositionalValue(int row, int col) const {
     return PST_QUEEN[r][col];
 }
 
+// Ходит по всем 8 направлениям до упора (ладья + слон)
 std::vector<Position> Queen::getPseudoMoves(int r, int c, const Table& t) const {
     std::vector<Position> moves;
     int dirs[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
@@ -176,7 +168,7 @@ std::vector<Position> Queen::getPseudoMoves(int r, int c, const Table& t) const 
     return moves;
 }
 
-// Ладья
+// ====== Ладья ======
 
 char Rook::getSymbol()        const { return color == Color::White ? 'R' : 'r'; }
 int  Rook::getMaterialValue() const { return 500; }
@@ -211,7 +203,7 @@ std::vector<Position> Rook::getPseudoMoves(int r, int c, const Table& t) const {
     return moves;
 }
 
-// Слон
+// ====== Слон ======
 
 char Bishop::getSymbol()        const { return color == Color::White ? 'B' : 'b'; }
 int  Bishop::getMaterialValue() const { return 330; }
@@ -246,7 +238,7 @@ std::vector<Position> Bishop::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// Конь
+// ====== Конь ======
 
 char Knight::getSymbol()        const { return color == Color::White ? 'N' : 'n'; }
 int  Knight::getMaterialValue() const { return 320; }
@@ -275,7 +267,7 @@ std::vector<Position> Knight::getPseudoMoves(int r, int c, const Table& t) const
     return moves;
 }
 
-// Пешка
+// ====== Пешка ======
 
 char Pawn::getSymbol()        const { return color == Color::White ? 'P' : 'p'; }
 int  Pawn::getMaterialValue() const { return 100; }
@@ -296,7 +288,7 @@ std::vector<Position> Pawn::getPseudoMoves(int r, int c, const Table& t) const {
     int dir      = (color == Color::White) ? 1 : -1;
     int startRow = (color == Color::White) ? 1 : 6;
 
-    // Ход вперёд (один или два поля с начальной позиции)
+    // Ход вперёд
     if (t.isInBounds(r + dir, c) && !t.getFigureAt(r + dir, c)) {
         moves.push_back(Position(r + dir, c));
         if (r == startRow && !t.getFigureAt(r + 2 * dir, c))

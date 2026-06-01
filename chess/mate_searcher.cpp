@@ -10,7 +10,6 @@ std::string MateSearcher::squareStr(int r, int c) {
     return s;
 }
 
-// Формирует строку хода в алгебраической нотации, например "Qd5-d8" или "Nc4xe5"
 std::string MateSearcher::moveStr(const Table& t, const Move& m) {
     Figure* f = t.getFigureAt(m.fr, m.fc);
     std::string piece;
@@ -50,8 +49,7 @@ std::vector<Move> MateSearcher::collectMoves(const Table& t, Color::E color) {
             std::vector<Position> dests = t.getValidMoves(r, c);
             for (size_t i = 0; i < dests.size(); i++) {
                 int tr = dests[i].first, tc = dests[i].second;
-                bool isPromo = (f->getType() == PieceType::Pawn &&
-                                (tr == 0 || tr == 7));
+                bool isPromo = (f->getType() == PieceType::Pawn && (tr == 0 || tr == 7));
                 if (isPromo) {
                     const char ps[] = {'Q','R','B','N'};
                     for (int p = 0; p < 4; p++) {
@@ -70,7 +68,6 @@ std::vector<Move> MateSearcher::collectMoves(const Table& t, Color::E color) {
     return moves;
 }
 
-// Проверяет, есть ли у белых мат за один ход
 bool MateSearcher::mateIn1(const Table& t, Move& out) {
     std::vector<Move> moves = collectMoves(t, Color::White);
     for (size_t i = 0; i < moves.size(); i++) {
@@ -85,8 +82,7 @@ bool MateSearcher::mateIn1(const Table& t, Move& out) {
     return false;
 }
 
-// Проверяет, есть ли у белых форсированный мат за два хода:
-// нужно найти ход белых, после которого ВСЕ ответы чёрных ведут к мату в 1
+// mateIn2: ход белых ведёт к мату только если ВСЕ ответы чёрных оставляют mateIn1.
 bool MateSearcher::mateIn2(const Table& t, Move& out) {
     if (mateIn1(t, out)) return true;
 
@@ -95,25 +91,22 @@ bool MateSearcher::mateIn2(const Table& t, Move& out) {
         const Move& wm = white_moves[wi];
         Table after_white = t;
         after_white.makeMove(wm.fr, wm.fc, wm.tr, wm.tc, charToPromo(wm.promotion));
-
         if (after_white.isGameOver()) continue;
 
         std::vector<Move> black_moves = collectMoves(after_white, Color::Black);
-        if (black_moves.empty()) continue; // пат — не мат
+        if (black_moves.empty()) continue;
 
         bool all_lead_to_mate = true;
         for (size_t bi = 0; bi < black_moves.size(); bi++) {
             const Move& bm = black_moves[bi];
             Table after_black = after_white;
             after_black.makeMove(bm.fr, bm.fc, bm.tr, bm.tc, charToPromo(bm.promotion));
-
             Move dummy;
             if (!mateIn1(after_black, dummy)) {
                 all_lead_to_mate = false;
                 break;
             }
         }
-
         if (all_lead_to_mate) {
             out = wm;
             return true;
@@ -126,24 +119,16 @@ Move MateSearcher::findMatingMove(const Table& board, int maxDepth) {
     Move result;
     result.fr = -1; result.fc = -1; result.tr = -1; result.tc = -1;
     result.promotion = 'Q';
-
     if (maxDepth >= 1 && mateIn1(board, result)) return result;
     if (maxDepth >= 2 && mateIn2(board, result)) return result;
-
     return result;
 }
 
-// Парсит файл задачи формата:
-//   White: N
-//   QA4        <- буква фигуры + столбец (A-H) + ряд (1-8)
-//   Black: M
-//   KD8
 bool MateSearcher::loadPosition(Table& table, const std::string& filename) {
     std::ifstream file(filename.c_str());
     if (!file.is_open()) return false;
 
     table.clearBoard();
-
     Color::E currentColor = Color::White;
     std::string line;
 
@@ -153,20 +138,12 @@ bool MateSearcher::loadPosition(Table& table, const std::string& filename) {
         line = line.substr(start);
         if (line.empty()) continue;
 
-        if (line.size() >= 6 && line.substr(0, 6) == "White:") {
-            currentColor = Color::White;
-            continue;
-        }
-        if (line.size() >= 6 && line.substr(0, 6) == "Black:") {
-            currentColor = Color::Black;
-            continue;
-        }
-
+        if (line.size() >= 6 && line.substr(0, 6) == "White:") { currentColor = Color::White; continue; }
+        if (line.size() >= 6 && line.substr(0, 6) == "Black:") { currentColor = Color::Black; continue; }
         if (line.size() < 3) continue;
 
         char pieceChar = line[0];
-        char fileChar  = static_cast<char>(
-                            toupper(static_cast<unsigned char>(line[1])));
+        char fileChar  = static_cast<char>(toupper(static_cast<unsigned char>(line[1])));
         char rankChar  = line[2];
 
         if (fileChar < 'A' || fileChar > 'H') continue;
@@ -185,10 +162,8 @@ bool MateSearcher::loadPosition(Table& table, const std::string& filename) {
             case 'P': type = PieceType::Pawn;   break;
             default: continue;
         }
-
         table.placePiece(type, currentColor, row, col);
     }
-
     return true;
 }
 
@@ -212,7 +187,6 @@ int MateSearcher::solvePuzzle(const std::string& inputFile,
         out << "Решение: мат в 2 хода.\n";
         out << "1. " << moveStr(board, wm2) << "\n";
 
-        // Показываем один пример ответа чёрных и ответный мат белых
         Table after_w = board;
         after_w.makeMove(wm2.fr, wm2.fc, wm2.tr, wm2.tc, charToPromo(wm2.promotion));
 
@@ -228,7 +202,6 @@ int MateSearcher::solvePuzzle(const std::string& inputFile,
             if (mateIn1(after_b, wm_reply))
                 out << "2. " << moveStr(after_b, wm_reply) << "#\n";
         }
-
         return 2;
     }
 

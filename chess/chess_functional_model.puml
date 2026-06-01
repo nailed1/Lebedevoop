@@ -1,0 +1,73 @@
+@startuml chess_functional_model
+skinparam ArrowColor #444444
+skinparam SequenceBoxBorderColor #555555
+skinparam SequenceBoxBackgroundColor #FAFAFA
+
+title Функциональная модель — Шахматы
+
+actor    "Игрок / GUI"  as User
+participant "Table"    as T
+participant "Figure"   as F
+participant "AI"       as AI
+
+== Инициализация ==
+
+User -> T : initialize()
+T -> F : create(type, color)  [x32]
+note right of T : Фабричный метод\nрасставляет фигуры
+
+== Ход игрока ==
+
+User -> T : makeMove(fr, fc, tr, tc)
+activate T
+
+T -> T : getValidMoves(fr, fc)
+activate T
+  T -> F : getPseudoMoves(r, c, *this)
+  F --> T : vector<Position>
+  T -> T : wouldLeaveInCheck(fr,fc,tr,tc)
+  note right : const-метод:\nвременно двигает mutable cells,\nоткатывает назад
+T --> T : valid moves
+deactivate T
+
+alt ход допустим
+  T -> T : removePieceAt(tr,tc)   [взятие: delete O(1)]
+  T -> F : setHasMoved(true)
+  T -> T : проверка мата / пата
+  T --> User : true
+else ход недопустим
+  T --> User : false
+end
+
+deactivate T
+
+== Ход ИИ ==
+
+User -> AI : getBestMove(board, color)
+activate AI
+
+AI -> AI : collectMoves(board, color)
+note right : агрегирует ходы всех фигур,\nсортирует взятия (CaptureSorter)
+
+loop minimax — для каждого хода
+  AI -> T : copy = board         [конструктор копирования: 64× clone()]
+  AI -> T : copy.makeMove(m)
+  AI -> AI : minimax(copy, depth-1, α, β)
+  note right : рекурсия до depth == 0;\nα-β отсечение: if β ≤ α break
+end
+
+AI --> User : Move (лучший ход)
+deactivate AI
+
+User -> T : makeMove(bestMove)
+
+== Конец партии ==
+
+T -> T : isInCheck(currentTurn)
+alt мат
+  T --> User : winner = opponent
+else пат
+  T --> User : isDraw = true
+end
+
+@enduml

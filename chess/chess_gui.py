@@ -3,6 +3,7 @@
 # Режимы: обычная игра (игрок/ИИ для каждой стороны), задачи на мат в 1-2 хода.
 
 import ctypes
+import datetime
 import os
 import threading
 import tkinter as tk
@@ -169,6 +170,11 @@ MODES = [
 
 def _sq_name(r, c):
     return "abcdefgh"[c] + str(r + 1)
+
+
+def _piece_label(sym):
+    up = sym.upper()
+    return '' if up == 'P' else up
 
 
 def _read_solution(filepath):
@@ -440,10 +446,23 @@ class ChessGUI:
         root.configure(bg="#2C2C2C")
         root.resizable(False, False)
 
-        self.board_cv = BoardCanvas(root)
+        self.history  = []
+        self.move_num = 1
+
+        outer = tk.Frame(root, bg="#2C2C2C")
+        outer.pack(fill='both', expand=True)
+
+        left = tk.Frame(outer, bg="#2C2C2C")
+        left.pack(side='left')
+
+        right = tk.Frame(outer, bg="#1A1A2E", width=200, padx=12, pady=12)
+        right.pack(side='left', fill='y')
+        right.pack_propagate(False)
+
+        self.board_cv = BoardCanvas(left)
         self.board_cv.bind_click(self._on_click)
 
-        bar = tk.Frame(root, bg="#2C2C2C")
+        bar = tk.Frame(left, bg="#2C2C2C")
         bar.pack(fill='x')
 
         tk.Button(bar, text="Меню",
@@ -466,12 +485,97 @@ class ChessGUI:
                   relief='flat', padx=8, pady=4,
                   cursor='hand2').pack(side='right', padx=4, pady=4)
 
+        tk.Label(right, text="История ходов",
+                 font=("Arial", 12, "bold"),
+                 bg="#1A1A2E", fg="#E8C97A",
+                 anchor='w').pack(fill='x', pady=(0, 8))
+
+        hist_frame = tk.Frame(right, bg="#1A1A2E")
+        hist_frame.pack(fill='both', expand=True)
+
+        scrollbar = tk.Scrollbar(hist_frame)
+        scrollbar.pack(side='right', fill='y')
+
+        self.history_text = tk.Text(
+            hist_frame,
+            font=("Courier", 10),
+            bg="#0D1B2A", fg="#DDDDDD",
+            relief='flat', state='disabled', wrap='word',
+            yscrollcommand=scrollbar.set)
+        self.history_text.pack(side='left', fill='both', expand=True)
+        scrollbar.config(command=self.history_text.yview)
+
         self._draw()
         self._update_status()
 
         # Если ИИ ходит первым (белые — ИИ), запускаем сразу
         if self.ai_white and not self.engine.is_game_over():
             self.root.after(400, self._trigger_ai)
+
+    def _set_text(self, widget, content):
+        widget.config(state='normal')
+        widget.delete('1.0', 'end')
+        widget.insert('end', content)
+        widget.config(state='disabled')
+
+    def _append_history(self, text):
+        self.history.append(text)
+        self.history_text.config(state='normal')
+        self.history_text.insert('end', text + '\n')
+        self.history_text.see('end')
+        self.history_text.config(state='disabled')
+
+    def _build_move_label(self, fr, fc, tr, tc, promo):
+        bd    = self.engine.board()
+        sym   = bd[fr][fc]
+        piece = _piece_label(sym)
+        move  = piece + _sq_name(fr, fc) + "-" + _sq_name(tr, tc)
+        if sym.upper() == 'P' and (tr == 7 or tr == 0):
+            move += "=" + promo
+        if self.engine.turn() == 'W':
+            label = f"{self.move_num:2}. {move}"
+        else:
+            label = f"{self.move_num:2}... {move}"
+            self.move_num += 1
+        return label
+
+    def _save_history(self):
+        if not self.history:
+            return
+        hist_dir = os.path.join(_HERE, "history")
+        os.makedirs(hist_dir, exist_ok=True)
+
+        eng = self.engine
+        if eng.is_draw():
+            result_str = "Ничья (пат)"
+        elif eng.winner() == 'W':
+            result_str = "Белые победили матом"
+        elif eng.winner() == 'B':
+            result_str = "Чёрные победили матом"
+        else:
+            result_str = "Незавершённая"
+
+        mode_labels = {
+            'pvp': "Игрок vs Игрок",
+            'pw':  "Игрок (бел.) vs ИИ",
+            'pb':  "ИИ vs Игрок (чёрн.)",
+            'ai':  "ИИ vs ИИ",
+        }
+        now = datetime.datetime.now()
+        ts  = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename = os.path.join(hist_dir, f"{ts}_{self.mode}.txt")
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write("══════════════════════════\n")
+            f.write("Шахматная партия\n")
+            f.write(f"Дата:  {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Режим: {mode_labels.get(self.mode, self.mode)}\n")
+            f.write("──────────────────────────\n")
+            for line in self.history:
+                f.write(line.strip() + "\n")
+            f.write("──────────────────────────\n")
+            f.write(f"Результат: {result_str}\n")
+            f.write("══════════════════════════\n")
 
     def _is_human_turn(self):
         turn = self.engine.turn()
@@ -540,7 +644,9 @@ class ChessGUI:
         if sym.upper() == 'P' and (tr == 7 or tr == 0):
             promo = self._ask_promotion(eng.turn())
 
+        label = self._build_move_label(fr, fc, tr, tc, promo)
         eng.make_move(fr, fc, tr, tc, promo)
+        self._append_history(label)
         self.selected = None
         self.valid    = []
         self.ai_last  = None
@@ -551,7 +657,6 @@ class ChessGUI:
             self._show_game_over()
             return
 
-        # Если следующий ход принадлежит ИИ — запускаем его
         if not self._is_human_turn():
             self.root.after(200, self._trigger_ai)
 
@@ -576,8 +681,10 @@ class ChessGUI:
             self._update_status()
             return
         fr, fc, tr, tc, promo = result
+        label = self._build_move_label(fr, fc, tr, tc, promo)
         self.ai_last = (fr, fc, tr, tc)
         eng.make_move(fr, fc, tr, tc, promo)
+        self._append_history(label)
         self.selected = None
         self.valid    = []
         self._draw()
@@ -587,12 +694,12 @@ class ChessGUI:
             self._show_game_over()
             return
 
-        # В режиме ИИ vs ИИ продолжаем автоматически
         if not self._is_human_turn():
             self.root.after(400, self._trigger_ai)
 
     def _show_game_over(self):
         eng = self.engine
+        self._save_history()
         if eng.is_draw():
             messagebox.showinfo("Конец игры", "Пат — ничья!")
         else:
@@ -605,6 +712,9 @@ class ChessGUI:
         self.valid    = []
         self.ai_last  = None
         self.ai_busy  = False
+        self.history  = []
+        self.move_num = 1
+        self._set_text(self.history_text, "")
         self._update_status()
         self._draw()
         if not self._is_human_turn() and not self.engine.is_game_over():

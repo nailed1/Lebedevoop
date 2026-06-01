@@ -1,0 +1,99 @@
+@startuml chess_object_model
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam ArrowColor #444444
+skinparam ClassBorderColor #555555
+skinparam ClassBackgroundColor #FAFAFA
+
+title Объектная модель — Шахматы
+
+enum Color {
+    White
+    Black
+    None
+}
+
+enum PieceType {
+    King / Queen / Rook
+    Bishop / Knight / Pawn
+}
+
+abstract class Figure {
+    # color    : Color
+    # type     : PieceType
+    # hasMoved : bool
+    --
+    + {abstract} getSymbol()           : char
+    + {abstract} clone()               : Figure*
+    + {abstract} getMaterialValue()    : int
+    + {abstract} getPositionalValue()  : int
+    + {abstract} getPseudoMoves()      : vector<Position>
+    + {static}   create(t,c)           : Figure*
+}
+
+class King   {}
+class Queen  {}
+class Rook   {}
+class Bishop {}
+class Knight {}
+class Pawn   {}
+
+Figure <|-- King
+Figure <|-- Queen
+Figure <|-- Rook
+Figure <|-- Bishop
+Figure <|-- Knight
+Figure <|-- Pawn
+
+class Cell {
+    - row, col : int
+    - figure   : Figure*
+    --
+    + getFigure() : Figure*
+    + setFigure() : void
+    + isEmpty()   : bool
+}
+
+class Table {
+    - cells[8][8]      : Cell
+    - currentTurn      : Color
+    - enPassantTarget  : Position
+    - gameOver         : bool
+    - winner           : Color
+    - isDraw           : bool
+    --
+    + initialize()              : void
+    + makeMove(fr,fc,tr,tc)     : bool
+    + getValidMoves(r,c)        : vector<Position>
+    + isInCheck(color)          : bool
+    + isSquareAttacked(r,c,by)  : bool
+}
+
+struct Move <<struct>> {
+    fr, fc, tr, tc : int
+    promotion      : char
+}
+
+class AI {
+    - searchDepth : int
+    --
+    + getBestMove(board, color) : Move
+    - minimax(t, d, α, β)      : int
+    - {static} evaluate(t)     : int
+    - {static} collectMoves()  : vector<Move>
+}
+
+class MateSearcher {
+    + {static} loadPosition(table, file)     : bool
+    + {static} findMatingMove(board, depth)  : Move
+    + {static} solvePuzzle(inFile, outFile)  : int
+}
+
+Cell   "0..1" *--  Figure  : владеет
+Table  *-- "64" Cell       : содержит
+AI          ..>  Table     : читает / копирует
+AI          ..>  Move      : возвращает
+MateSearcher ..> Table     : читает / копирует
+MateSearcher ..> Move      : использует
+
+@enduml
