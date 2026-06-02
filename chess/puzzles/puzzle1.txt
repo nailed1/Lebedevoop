@@ -1,8 +1,21 @@
-White: 2
-QD5
-KG1
-Black: 4
-KG8
-pF7
-pG7
+White: 8
+KA3
+QC4
+RD5
+BE4
+BB2
+NE7
+NF1
+pF2
+Black: 11
+KF4
+QF5
+RF8
+BA7
+NC5
+NF6
+pD6
+pE3
+pG3
+pG5
 pH7

@@ -115,12 +115,46 @@ bool MateSearcher::mateIn2(const Table& t, Move& out) {
     return false;
 }
 
+// mateIn3: ход белых ведёт к мату только если ВСЕ ответы чёрных оставляют mateIn2.
+bool MateSearcher::mateIn3(const Table& t, Move& out) {
+    if (mateIn2(t, out)) return true;
+
+    std::vector<Move> white_moves = collectMoves(t, Color::White);
+    for (size_t wi = 0; wi < white_moves.size(); wi++) {
+        const Move& wm = white_moves[wi];
+        Table after_white = t;
+        after_white.makeMove(wm.fr, wm.fc, wm.tr, wm.tc, charToPromo(wm.promotion));
+        if (after_white.isGameOver()) continue;
+
+        std::vector<Move> black_moves = collectMoves(after_white, Color::Black);
+        if (black_moves.empty()) continue;
+
+        bool all_lead_to_mate = true;
+        for (size_t bi = 0; bi < black_moves.size(); bi++) {
+            const Move& bm = black_moves[bi];
+            Table after_black = after_white;
+            after_black.makeMove(bm.fr, bm.fc, bm.tr, bm.tc, charToPromo(bm.promotion));
+            Move dummy;
+            if (!mateIn2(after_black, dummy)) {
+                all_lead_to_mate = false;
+                break;
+            }
+        }
+        if (all_lead_to_mate) {
+            out = wm;
+            return true;
+        }
+    }
+    return false;
+}
+
 Move MateSearcher::findMatingMove(const Table& board, int maxDepth) {
     Move result;
     result.fr = -1; result.fc = -1; result.tr = -1; result.tc = -1;
     result.promotion = 'Q';
     if (maxDepth >= 1 && mateIn1(board, result)) return result;
     if (maxDepth >= 2 && mateIn2(board, result)) return result;
+    if (maxDepth >= 3 && mateIn3(board, result)) return result;
     return result;
 }
 
@@ -205,6 +239,13 @@ int MateSearcher::solvePuzzle(const std::string& inputFile,
         return 2;
     }
 
-    out << "Форсированный мат в 1-2 хода не найден.\n";
+    Move wm3;
+    if (mateIn3(board, wm3)) {
+        out << "Решение: мат в 3 хода.\n";
+        out << "1. " << moveStr(board, wm3) << "\n";
+        return 3;
+    }
+
+    out << "Форсированный мат в 1-3 хода не найден.\n";
     return 0;
 }

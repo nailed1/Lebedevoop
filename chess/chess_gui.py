@@ -137,26 +137,10 @@ UNICODE = {
 
 # Список задач на мат
 PUZZLES = [
-    {
-        "name":  "Задача 1 — Мат в 1 ход (загнанный король)",
-        "file":  "puzzles/puzzle1.txt",
-        "desc":  "Белые: Ф+Кр  |  Чёрные: Кр+3 пешки\nНайдите мат в один ход.",
-    },
-    {
-        "name":  "Задача 2 — Мат в 1 ход (линейный мат)",
-        "file":  "puzzles/puzzle2.txt",
-        "desc":  "Белые: Ф+Кр  |  Чёрные: Кр+2 пешки\nФерзь наносит решающий удар.",
-    },
-    {
-        "name":  "Задача 3 — Мат в 2 хода (из условия ДЗ)",
-        "file":  "puzzles/puzzle3.txt",
-        "desc":  "Белые: Ф+К+Кр  |  Чёрные: Кр+С+4 пешки\nПример из условия задания.",
-    },
-    {
-        "name":  "Задача 4 — Мат в 1 ход (дальний удар)",
-        "file":  "puzzles/puzzle4.txt",
-        "desc":  "Белые: Ф+Кр  |  Чёрные: Кр+2 пешки\nФерзь бьёт через всю доску.",
-    },
+    {"name": "Задача 1", "file": "puzzles/puzzle1.txt"},
+    {"name": "Задача 2", "file": "puzzles/puzzle2.txt"},
+    {"name": "Задача 3", "file": "puzzles/puzzle3.txt"},
+    {"name": "Задача 4", "file": "puzzles/puzzle4.txt"},
 ]
 
 # Режимы обычной игры: (код, заголовок, описание)
@@ -307,11 +291,6 @@ class PuzzleSelector:
                      font=("Arial", 12, "bold"),
                      bg="#16213E", fg="#E8C97A",
                      anchor='w').pack(fill='x')
-
-            tk.Label(card, text=pz["desc"],
-                     font=("Arial", 10),
-                     bg="#16213E", fg="#AAAACC",
-                     anchor='w', justify='left').pack(fill='x')
 
             pz_copy = dict(pz)
             tk.Button(card, text="Играть",
@@ -779,6 +758,9 @@ class PuzzleGUI:
         right.pack(side='left', fill='y')
         right.pack_propagate(False)
 
+        self.player_side = puzzle.get("side", "B")
+        self.ai_side     = "B" if self.player_side == "W" else "W"
+
         self.board_cv = BoardCanvas(left)
         self.board_cv.bind_click(self._on_click)
 
@@ -803,43 +785,24 @@ class PuzzleGUI:
                   relief='flat', padx=8, pady=4,
                   cursor='hand2').pack(side='right', padx=4, pady=4)
 
-        # Правая панель: условие, решение, история ходов
-        tk.Label(right, text="Условие задачи",
+        player_label = "белые" if self.player_side == "W" else "чёрные"
+        ai_label     = "чёрные" if self.ai_side == "B" else "белые"
+
+        # Правая панель: история ходов
+        tk.Label(right, text=puzzle["name"],
                  font=("Arial", 13, "bold"),
                  bg="#16213E", fg="#E8C97A",
-                 anchor='w').pack(fill='x', pady=(0, 6))
+                 anchor='w').pack(fill='x', pady=(0, 8))
 
-        tk.Label(right, text=puzzle["name"],
-                 font=("Arial", 10, "bold"),
-                 bg="#16213E", fg="#E0D5C1",
-                 anchor='w', wraplength=228, justify='left').pack(fill='x')
-
-        tk.Label(right, text=puzzle["desc"],
-                 font=("Arial", 9),
-                 bg="#16213E", fg="#AAAACC",
-                 anchor='w', wraplength=228, justify='left').pack(fill='x', pady=(4, 12))
-
-        tk.Label(right, text="Вы играете: чёрные",
+        tk.Label(right, text=f"Вы играете: {player_label}",
                  font=("Arial", 10, "bold"),
                  bg="#16213E", fg="#88CCFF", anchor='w').pack(fill='x')
 
-        tk.Label(right, text="ИИ играет: белые",
+        tk.Label(right, text=f"ИИ играет: {ai_label}",
                  font=("Arial", 10, "bold"),
                  bg="#16213E", fg="#FFAA55", anchor='w').pack(fill='x', pady=(2, 12))
 
         tk.Frame(right, bg="#334466", height=1).pack(fill='x', pady=6)
-
-        tk.Label(right, text="Решение (спойлер)",
-                 font=("Arial", 11, "bold"),
-                 bg="#16213E", fg="#E8C97A", anchor='w').pack(fill='x', pady=(4, 4))
-
-        self.sol_text = tk.Text(right, height=8, width=28,
-                                font=("Courier", 10),
-                                bg="#0D1B2A", fg="#88FF88",
-                                relief='flat', state='disabled', wrap='word')
-        self.sol_text.pack(fill='x')
-
-        tk.Frame(right, bg="#334466", height=1).pack(fill='x', pady=10)
 
         tk.Label(right, text="История ходов",
                  font=("Arial", 11, "bold"),
@@ -870,16 +833,12 @@ class PuzzleGUI:
         self.move_num = 1
         self.history  = []
 
-        # Генерируем файл решения и показываем его
-        sol_path = filepath.replace(".txt", "_sol.txt")
-        _lib.chess_solve_puzzle(filepath.encode(), sol_path.encode())
-        self._set_text(self.sol_text, _read_solution(sol_path))
         self._set_text(self.history_text, "")
 
         self._draw()
         self._update_status()
 
-        if not self.engine.is_game_over():
+        if not self.engine.is_game_over() and self.engine.turn() == self.ai_side:
             self.root.after(600, self._trigger_ai)
 
     def _set_text(self, widget, content):
@@ -910,13 +869,16 @@ class PuzzleGUI:
                 w = "Белые" if eng.winner() == 'W' else "Чёрные"
                 self.status_var.set(f"Мат! {w} победили.")
         else:
-            who = "Белые (ИИ)" if eng.turn() == 'W' else "Ваш ход (чёрные)"
+            if eng.turn() == self.ai_side:
+                who = "Белые (ИИ)" if self.ai_side == 'W' else "Чёрные (ИИ)"
+            else:
+                who = "Ваш ход (белые)" if self.player_side == 'W' else "Ваш ход (чёрные)"
             chk = "  ШАХ!" if eng.is_in_check(eng.turn()) else ""
             self.status_var.set(who + chk)
 
     def _on_click(self, event):
         eng = self.engine
-        if eng.is_game_over() or self.ai_busy or eng.turn() == 'W':
+        if eng.is_game_over() or self.ai_busy or eng.turn() != self.player_side:
             return
 
         r, c = BoardCanvas.rc(event.x, event.y)
@@ -925,7 +887,7 @@ class PuzzleGUI:
 
         bd  = eng.board()
         sym = bd[r][c]
-        own = sym.islower() and sym != '.'
+        own = (sym.isupper() and sym != '.') if self.player_side == 'W' else (sym.islower() and sym != '.')
 
         if self.selected is None:
             if own:
@@ -933,7 +895,7 @@ class PuzzleGUI:
                 self.valid    = eng.valid_moves(r, c)
         else:
             if (r, c) in self.valid:
-                self._execute_black_move(*self.selected, r, c, bd)
+                self._execute_player_move(*self.selected, r, c, bd)
                 return
             elif own:
                 self.selected = (r, c)
@@ -945,16 +907,21 @@ class PuzzleGUI:
         self._draw()
         self._update_status()
 
-    def _execute_black_move(self, fr, fc, tr, tc, bd):
+    def _execute_player_move(self, fr, fc, tr, tc, bd):
         eng   = self.engine
         promo = 'Q'
 
-        move_label = f"{self.move_num}... {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
+        if self.player_side == 'W':
+            move_label = f"{self.move_num}. {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
+        else:
+            move_label = f"{self.move_num}... {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
         eng.make_move(fr, fc, tr, tc, promo)
         self.selected = None
         self.valid    = []
         self.ai_last  = None
         self._append_history(move_label)
+        if self.player_side == 'B':
+            self.move_num += 1
         self._draw()
         self._update_status()
 
@@ -962,21 +929,21 @@ class PuzzleGUI:
             self._on_game_over()
             return
 
-        self.move_num += 1
         self.root.after(300, self._trigger_ai)
 
     def _trigger_ai(self):
         eng = self.engine
-        if eng.is_game_over() or eng.turn() != 'W':
+        if eng.is_game_over() or eng.turn() != self.ai_side:
             return
         self.ai_busy = True
         self._update_status()
 
+        ai_side = self.ai_side
+
         def worker():
-            # Сначала ищем форсированный мат, иначе — обычный минимакс
-            result = self.engine.find_mate_move(2)
+            result = self.engine.find_mate_move(3)
             if result is None:
-                result = self.engine.get_best_move('W', 3)
+                result = self.engine.get_best_move(ai_side, 5)
             self.root.after(0, lambda: self._apply_ai_move(result))
 
         threading.Thread(target=worker, daemon=True).start()
@@ -989,9 +956,14 @@ class PuzzleGUI:
             return
 
         fr, fc, tr, tc, promo = result
-        move_label = f"{self.move_num}. {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
+        if self.ai_side == 'W':
+            move_label = f"{self.move_num}. {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
+        else:
+            move_label = f"{self.move_num}... {_sq_name(fr,fc)}-{_sq_name(tr,tc)}"
         self.ai_last = (fr, fc, tr, tc)
         eng.make_move(fr, fc, tr, tc, promo)
+        if self.ai_side == 'B':
+            self.move_num += 1
         self.selected = None
         self.valid    = []
         self._append_history(move_label)
@@ -1005,10 +977,10 @@ class PuzzleGUI:
         eng = self.engine
         if eng.is_draw():
             msg = "Пат — ничья!"
-        elif eng.winner() == 'W':
-            msg = "Мат! Белые поставили мат чёрным.\nЗадача успешно решена!"
+        elif eng.winner() == self.player_side:
+            msg = "Мат! Вы поставили мат.\nЗадача успешно решена!"
         else:
-            msg = "Мат! Чёрные победили. (Неожиданно!)"
+            msg = "Мат! ИИ победил."
         messagebox.showinfo("Конец задачи", msg)
 
 

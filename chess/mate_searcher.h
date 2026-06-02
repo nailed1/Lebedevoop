@@ -20,13 +20,14 @@ public:
     static Move findMatingMove(const Table& board, int maxDepth);
 
     // Загружает позицию, ищет мат, записывает решение в outputFile.
-    // Возвращает 1 (мат в 1), 2 (мат в 2) или 0 (не найден).
+    // Возвращает 1 (мат в 1), 2 (мат в 2), 3 (мат в 3) или 0 (не найден).
     static int solvePuzzle(const std::string& inputFile,
                             const std::string& outputFile);
 
 private:
     static bool mateIn1(const Table& t, Move& out);
     static bool mateIn2(const Table& t, Move& out);
+    static bool mateIn3(const Table& t, Move& out);
     static std::vector<Move> collectMoves(const Table& t, Color::E color);
     static PieceType::E charToPromo(char p);
     static std::string squareStr(int r, int c);

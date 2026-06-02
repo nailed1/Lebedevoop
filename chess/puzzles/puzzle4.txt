@@ -1,7 +1,20 @@
-White: 2
-QA5
-KA1
-Black: 3
-KB8
-pA7
-pB7
+White: 9
+KA2
+RB3
+RD1
+BA6
+NA4
+NF4
+pC5
+pE6
+pE2
+Black: 10
+KC4
+NB5
+pA3
+pB4
+pC6
+pD6
+pD5
+pE7
+pE3

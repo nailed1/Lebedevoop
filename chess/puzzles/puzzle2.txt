@@ -1,7 +1,24 @@
-White: 2
-QD1
-KH1
-Black: 3
-KA8
-pA7
-pB7
+White: 12
+KD8
+QF1
+RD7
+RF6
+BB7
+BC5
+ND4
+NH5
+pC6
+pC4
+pD2
+pG7
+Black: 10
+KE4
+QH6
+RB4
+RD3
+BG1
+BH1
+NF5
+pC3
+pF4
+pH7
