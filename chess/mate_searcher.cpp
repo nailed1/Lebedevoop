@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cctype>
 #include <cstring>
+#include <cstdio>
 
 std::string MateSearcher::squareStr(int r, int c) {
     std::string s;
@@ -66,6 +67,96 @@ std::vector<Move> MateSearcher::collectMoves(const Table& t, Color::E color) {
         }
     }
     return moves;
+}
+
+bool MateSearcher::validatePosition(const Table& board,
+                                     std::vector<std::string>& errors) {
+    errors.clear();
+
+    int kings[2]   = {0, 0};
+    int pawns[2]   = {0, 0};
+    int queens[2]  = {0, 0};
+    int rooks[2]   = {0, 0};
+    int bishops[2] = {0, 0};
+    int knights[2] = {0, 0};
+    int total[2]   = {0, 0};
+
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            Figure* f = board.getFigureAt(r, c);
+            if (!f) continue;
+            int idx = (f->getColor() == Color::White) ? 0 : 1;
+            total[idx]++;
+            switch (f->getType()) {
+                case PieceType::King:   kings[idx]++;   break;
+                case PieceType::Queen:  queens[idx]++;  break;
+                case PieceType::Rook:   rooks[idx]++;   break;
+                case PieceType::Bishop: bishops[idx]++; break;
+                case PieceType::Knight: knights[idx]++; break;
+                case PieceType::Pawn:   pawns[idx]++;   break;
+                default: break;
+            }
+        }
+    }
+
+    const char* colorName[2] = {"Белые", "Чёрные"};
+
+    for (int i = 0; i < 2; i++) {
+        // 1. Ровно один король
+        if (kings[i] != 1) {
+            char buf[128];
+            std::sprintf(buf, "%s: королей на доске %d, должен быть ровно 1.",
+                         colorName[i], kings[i]);
+            errors.push_back(std::string(buf));
+        }
+
+        // 2. Не более 16 фигур на сторону
+        if (total[i] > 16) {
+            char buf[64];
+            std::sprintf(buf, "%s: фигур на доске %d, максимум 16.",
+                         colorName[i], total[i]);
+            errors.push_back(std::string(buf));
+        }
+
+        // 3. Пешки: 0–8
+        if (pawns[i] > 8) {
+            char buf[64];
+            std::sprintf(buf, "%s: пешек %d, допустимо от 0 до 8.",
+                         colorName[i], pawns[i]);
+            errors.push_back(std::string(buf));
+        }
+
+        // 4. Превращённые фигуры
+        // Лишние = те, что сверх стартового набора без учёта пешек: 1Q, 2R, 2B, 2N.
+        // Суммарное число лишних не должно превышать (8 - pawns[i]).
+        int promotionsAvailable = 8 - pawns[i];
+        int extraQueens  = (queens[i]  > 1) ? queens[i]  - 1 : 0;
+        int extraRooks   = (rooks[i]   > 2) ? rooks[i]   - 2 : 0;
+        int extraBishops = (bishops[i] > 2) ? bishops[i] - 2 : 0;
+        int extraKnights = (knights[i] > 2) ? knights[i] - 2 : 0;
+        int totalExtra   = extraQueens + extraRooks + extraBishops + extraKnights;
+
+        if (totalExtra > promotionsAvailable) {
+            char buf[256];
+            std::sprintf(buf,
+                "%s: лишних фигур %d (Q+%d R+%d B+%d N+%d), "
+                "но возможных превращений только %d (пешек на доске: %d).",
+                colorName[i],
+                totalExtra, extraQueens, extraRooks, extraBishops, extraKnights,
+                promotionsAvailable, pawns[i]);
+            errors.push_back(std::string(buf));
+        }
+    }
+
+    // 5. Суммарный лимит (redundant при корректном подсчёте выше, но явная защита)
+    if (total[0] + total[1] > 32) {
+        char buf[64];
+        std::sprintf(buf, "Всего фигур на доске %d, максимум 32.",
+                     total[0] + total[1]);
+        errors.push_back(std::string(buf));
+    }
+
+    return errors.empty();
 }
 
 bool MateSearcher::mateIn1(const Table& t, Move& out) {
@@ -208,6 +299,15 @@ int MateSearcher::solvePuzzle(const std::string& inputFile,
 
     std::ofstream out(outputFile.c_str());
     if (!out.is_open()) return 0;
+
+    // Проверяем корректность позиции перед поиском мата
+    std::vector<std::string> validationErrors;
+    if (!validatePosition(board, validationErrors)) {
+        out << "Позиция некорректна:\n";
+        for (size_t i = 0; i < validationErrors.size(); i++)
+            out << "  - " << validationErrors[i] << "\n";
+        return 0;
+    }
 
     Move wm1;
     if (mateIn1(board, wm1)) {

@@ -49,6 +49,8 @@ _lib.chess_find_mate_move.argtypes = [
 _lib.chess_find_mate_move.restype  = ctypes.c_int
 _lib.chess_solve_puzzle.argtypes   = [ctypes.c_char_p, ctypes.c_char_p]
 _lib.chess_solve_puzzle.restype    = ctypes.c_int
+_lib.chess_validate_position.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+_lib.chess_validate_position.restype  = ctypes.c_int
 
 
 # Тонкая обёртка над C++ объектом Table
@@ -68,6 +70,12 @@ class ChessEngine:
 
     def load_position(self, filepath):
         return bool(_lib.chess_load_position(self._h, filepath.encode()))
+
+    def validate_position(self):
+        """Возвращает (ok, error_string). ok=True если позиция корректна."""
+        buf = ctypes.create_string_buffer(2048)
+        ok = bool(_lib.chess_validate_position(self._h, buf, 2048))
+        return ok, buf.value.decode('utf-8', errors='replace')
 
     def board(self):
         _lib.chess_get_board(self._h, self._board_buf)
@@ -826,6 +834,16 @@ class PuzzleGUI:
     def _reset(self):
         filepath = os.path.join(_HERE, self.puzzle["file"])
         self.engine.load_position(filepath)
+
+        ok, errors = self.engine.validate_position()
+        if not ok:
+            messagebox.showerror(
+                "Некорректная позиция",
+                f"Позиция в файле «{self.puzzle['file']}» содержит ошибки:\n\n{errors}"
+            )
+            self.app.show_start_screen()
+            return
+
         self.selected = None
         self.valid    = []
         self.ai_busy  = False

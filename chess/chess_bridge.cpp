@@ -107,6 +107,25 @@ int chess_load_position(void* handle, const char* filename) {
     return MateSearcher::loadPosition(*t, std::string(filename)) ? 1 : 0;
 }
 
+// Проверяет корректность позиции на доске.
+// Записывает описание ошибок в out (разделитель '\n'), максимум out_size байт.
+// Возвращает 1 если позиция валидна, 0 если нет.
+int chess_validate_position(void* handle, char* out, int out_size) {
+    Table* t = static_cast<Table*>(handle);
+    std::vector<std::string> errors;
+    bool ok = MateSearcher::validatePosition(*t, errors);
+    if (out && out_size > 0) {
+        std::string msg;
+        for (size_t i = 0; i < errors.size(); i++) {
+            if (i > 0) msg += "\n";
+            msg += errors[i];
+        }
+        std::strncpy(out, msg.c_str(), static_cast<size_t>(out_size) - 1);
+        out[out_size - 1] = '\0';
+    }
+    return ok ? 1 : 0;
+}
+
 // Ищет форсированный мат за ≤ max_depth ходов.
 // out[5]: fr, fc, tr, tc, promotion. Возвращает 1 если мат найден.
 int chess_find_mate_move(void* handle, int max_depth, int* out) {

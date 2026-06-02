@@ -15,6 +15,14 @@ public:
     // Возвращает false если файл не открылся.
     static bool loadPosition(Table& table, const std::string& filename);
 
+    // Проверяет корректность позиции на доске.
+    // Правила: ровно по 1 королю каждого цвета; не более 16 фигур на сторону;
+    // 0–8 пешек на сторону; «лишние» фигуры не превышают число возможных превращений
+    // (8 − текущие пешки ≥ лишние фигуры).
+    // errors — список человекочитаемых описаний нарушений (на русском).
+    // Возвращает true если позиция валидна (errors пуст).
+    static bool validatePosition(const Table& board, std::vector<std::string>& errors);
+
     // Ищет ход белых, ведущий к форсированному мату за ≤ maxDepth ходов.
     // Возвращает Move с fr=-1 если мат не найден.
     static Move findMatingMove(const Table& board, int maxDepth);
